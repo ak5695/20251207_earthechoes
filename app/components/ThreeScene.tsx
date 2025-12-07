@@ -291,6 +291,17 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const highlightFadeRef = useRef<number>(0); // 高亮渐入渐出进度 (0-1)
     const highlightTargetRef = useRef<number>(0); // 高亮目标值 (0 或 1)
 
+    // 形态变换系统
+    type ShapeMode = "nebula" | "river" | "wave";
+    const shapeModeRef = useRef<ShapeMode>("nebula");
+    const shapeTransitionRef = useRef<number>(0); // 0-1 过渡进度
+    const shapeTransitionTargetRef = useRef<ShapeMode>("nebula");
+    const originalPositionsRef = useRef<Float32Array | null>(null); // 原始星云位置
+    const targetPositionsRef = useRef<Float32Array | null>(null); // 目标位置
+    const shapeTimerRef = useRef<number>(0); // 形态计时器
+    const SHAPE_DURATION = 60; // 每种形态持续60秒
+    const SHAPE_TRANSITION_DURATION = 3; // 过渡动画3秒
+
     // 摄像头动画状态
     const cameraAnimationRef = useRef<{
       isAnimating: boolean;
@@ -370,6 +381,79 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       nebulaTextureRef.current = new THREE.CanvasTexture(canvas);
       return nebulaTextureRef.current;
     }, []);
+
+    // 生成星云形态位置（螺旋形）
+    const generateNebulaShape = useCallback(
+      (particleCount: number): Float32Array => {
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+          const r = Math.random() * 35 + Math.random() * 15;
+          const theta = Math.random() * Math.PI * 2 * 3;
+          positions[i * 3] = r * Math.cos(theta);
+          positions[i * 3 + 1] = (Math.random() - 0.5) * 8;
+          positions[i * 3 + 2] = r * Math.sin(theta);
+        }
+        return positions;
+      },
+      []
+    );
+
+    // 生成星河形态位置（弯曲的S形河流）
+    const generateRiverShape = useCallback(
+      (particleCount: number): Float32Array => {
+        const positions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+          // 沿着曲线分布
+          const t = (i / particleCount) * Math.PI * 2; // 0 到 2π
+          // S形曲线
+          const mainX = t * 15 - 15 * Math.PI; // 展开宽度
+          const mainY = Math.sin(t * 2) * 12; // S形弯曲
+          const mainZ = Math.cos(t * 1.5) * 8; // 前后起伏
+
+          // 添加河流宽度和随机性
+          const width = 3 + Math.sin(t * 3) * 1.5; // 河流宽度变化
+          const offsetX = (Math.random() - 0.5) * width;
+          const offsetY = (Math.random() - 0.5) * width * 0.5;
+          const offsetZ = (Math.random() - 0.5) * width;
+
+          positions[i * 3] = mainX + offsetX;
+          positions[i * 3 + 1] = mainY + offsetY;
+          positions[i * 3 + 2] = mainZ + offsetZ;
+        }
+        return positions;
+      },
+      []
+    );
+
+    // 生成音乐波形态位置
+    const generateWaveShape = useCallback(
+      (particleCount: number, time: number = 0): Float32Array => {
+        const positions = new Float32Array(particleCount * 3);
+        const rows = 20;
+        const cols = Math.ceil(particleCount / rows);
+
+        for (let i = 0; i < particleCount; i++) {
+          const row = Math.floor(i / cols);
+          const col = i % cols;
+
+          const x = (col / cols) * 80 - 40; // -40 到 40
+          const z = (row / rows) * 30 - 15; // -15 到 15
+
+          // 多层波浪叠加
+          const wave1 = Math.sin((x * 0.15 + time * 0.5) * Math.PI) * 6;
+          const wave2 = Math.sin((x * 0.08 + z * 0.1 + time * 0.3) * Math.PI) * 4;
+          const wave3 = Math.cos((z * 0.2 + time * 0.7) * Math.PI) * 3;
+          const y = wave1 + wave2 + wave3;
+
+          // 添加一些随机性
+          positions[i * 3] = x + (Math.random() - 0.5) * 1;
+          positions[i * 3 + 1] = y + (Math.random() - 0.5) * 0.5;
+          positions[i * 3 + 2] = z + (Math.random() - 0.5) * 1;
+        }
+        return positions;
+      },
+      []
+    );
 
     // 生成哲学性的漂移曲线（整个屏幕范围内）
     const generateWanderCurves = useCallback(
@@ -778,6 +862,9 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         colors[i * 3 + 2] = color.b;
       }
 
+      // 保存原始星云位置（用于形态变换）
+      originalPositionsRef.current = new Float32Array(positions);
+
       geometry.setAttribute(
         "position",
         new THREE.BufferAttribute(positions, 3)
@@ -1150,6 +1237,91 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           }
           const scale = paramsRef.current.nebulaScale;
           nebulaRef.current.scale.set(scale, scale, scale);
+
+          // === 形态变换系统 ===
+          const particleCount = initialParams.nebulaParticleCount;
+          shapeTimerRef.current += delta;
+
+          // 检查是否需要切换形态
+          if (shapeTimerRef.current >= SHAPE_DURATION) {
+            shapeTimerRef.current = 0;
+            // 切换到下一个形态
+            const shapes: ShapeMode[] = ["nebula", "river", "wave"];
+            const currentIndex = shapes.indexOf(shapeModeRef.current);
+            const nextIndex = (currentIndex + 1) % shapes.length;
+            shapeTransitionTargetRef.current = shapes[nextIndex];
+          }
+
+          // 如果目标形态不同于当前形态，进行过渡
+          if (shapeTransitionTargetRef.current !== shapeModeRef.current) {
+            shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
+
+            if (shapeTransitionRef.current >= 1) {
+              // 过渡完成
+              shapeTransitionRef.current = 0;
+              shapeModeRef.current = shapeTransitionTargetRef.current;
+              // 更新原始位置为当前位置
+              const positions = nebulaRef.current.geometry.attributes.position
+                .array as Float32Array;
+              originalPositionsRef.current = new Float32Array(positions);
+            } else {
+              // 正在过渡中 - 生成目标位置并插值
+              const elapsedTime = clock.elapsedTime;
+              let targetPositions: Float32Array;
+
+              switch (shapeTransitionTargetRef.current) {
+                case "nebula":
+                  targetPositions = generateNebulaShape(particleCount);
+                  break;
+                case "river":
+                  targetPositions = generateRiverShape(particleCount);
+                  break;
+                case "wave":
+                  targetPositions = generateWaveShape(particleCount, elapsedTime);
+                  break;
+                default:
+                  targetPositions = originalPositionsRef.current!;
+              }
+
+              // 平滑过渡
+              const t = easeInOutCubic(shapeTransitionRef.current);
+              const positions = nebulaRef.current.geometry.attributes.position
+                .array as Float32Array;
+              const original = originalPositionsRef.current!;
+
+              for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = original[i] * (1 - t) + targetPositions[i] * t;
+              }
+              nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+            }
+          } else if (shapeModeRef.current === "wave") {
+            // 波形模式下持续更新位置以产生动画
+            const elapsedTime = clock.elapsedTime;
+            const positions = nebulaRef.current.geometry.attributes.position
+              .array as Float32Array;
+            const wavePositions = generateWaveShape(particleCount, elapsedTime);
+
+            // 平滑过渡到新的波浪位置
+            for (let i = 0; i < particleCount * 3; i++) {
+              positions[i] += (wavePositions[i] - positions[i]) * 0.02;
+            }
+            nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+          } else if (shapeModeRef.current === "river") {
+            // 星河模式下添加流动效果
+            const positions = nebulaRef.current.geometry.attributes.position
+              .array as Float32Array;
+            const flowSpeed = 0.5;
+
+            for (let i = 0; i < particleCount; i++) {
+              // 沿着X方向流动
+              positions[i * 3] += flowSpeed * delta * 5;
+              // 如果超出边界，从另一端重新进入
+              if (positions[i * 3] > 15 * Math.PI) {
+                positions[i * 3] = -15 * Math.PI;
+              }
+            }
+            nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+          }
 
           // 星云粒子效果 - 实心发光，波动式发光
           const breathTime = clock.elapsedTime;

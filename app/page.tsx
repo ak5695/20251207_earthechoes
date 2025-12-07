@@ -25,11 +25,11 @@ const translations: Record<
     welcomeTitle: "欢迎来到 Earth Echoes",
     welcomeText1: "我们来自星辰，也终归于星辰，做这宇宙旋律的音符。",
     welcomeText2: "你在这留下的情绪表达，将会汇聚成一首音乐，回荡在这空间里。",
-    startButton: "开始体验 ✨",
+    startButton: "开始体验",
     nextEchoIn: "下次回响",
     inputPlaceholder: "在这里留下你的心情...",
     clickToClose: "点击空白处关闭",
-    voiceFromNebula: "来自星云的声音 ✨",
+    voiceFromNebula: "来自星云的声音",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -45,11 +45,11 @@ const translations: Record<
       "We come from the stars, and to the stars we shall return, as notes in the cosmic melody.",
     welcomeText2:
       "The emotions you leave here will converge into music, echoing through this space.",
-    startButton: "Start Experience ✨",
+    startButton: "Start Experience",
     nextEchoIn: "Next Echo In",
     inputPlaceholder: "Leave your vibe here...",
     clickToClose: "Click outside to close",
-    voiceFromNebula: "Voice from the nebula ✨",
+    voiceFromNebula: "Voice from the nebula",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -65,11 +65,11 @@ const translations: Record<
       "私たちは星から来て、星へと帰る。宇宙のメロディーの音符として。",
     welcomeText2:
       "ここに残すあなたの感情は、音楽となってこの空間に響き渡ります。",
-    startButton: "体験を始める ✨",
+    startButton: "体験を始める",
     nextEchoIn: "次のエコーまで",
     inputPlaceholder: "あなたの気持ちを残して...",
     clickToClose: "外側をクリックして閉じる",
-    voiceFromNebula: "星雲からの声 ✨",
+    voiceFromNebula: "星雲からの声",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -85,11 +85,11 @@ const translations: Record<
       "우리는 별에서 왔고, 별로 돌아갑니다. 우주 멜로디의 음표로서.",
     welcomeText2:
       "여기에 남기는 당신의 감정은 음악이 되어 이 공간에 울려 퍼집니다.",
-    startButton: "시작하기 ✨",
+    startButton: "시작하기",
     nextEchoIn: "다음 에코까지",
     inputPlaceholder: "당신의 기분을 남겨주세요...",
     clickToClose: "바깥을 클릭하여 닫기",
-    voiceFromNebula: "성운에서 온 목소리 ✨",
+    voiceFromNebula: "성운에서 온 목소리",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -105,11 +105,11 @@ const translations: Record<
       "Nous venons des étoiles et retournons aux étoiles, comme des notes dans la mélodie cosmique.",
     welcomeText2:
       "Les émotions que vous laissez ici se transformeront en musique, résonnant dans cet espace.",
-    startButton: "Commencer ✨",
+    startButton: "Commencer",
     nextEchoIn: "Prochain Écho",
     inputPlaceholder: "Laissez votre humeur ici...",
     clickToClose: "Cliquez à l'extérieur pour fermer",
-    voiceFromNebula: "Voix de la nébuleuse ✨",
+    voiceFromNebula: "Voix de la nébuleuse",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -125,11 +125,11 @@ const translations: Record<
       "Venimos de las estrellas y a las estrellas volveremos, como notas en la melodía cósmica.",
     welcomeText2:
       "Las emociones que dejes aquí se convertirán en música, resonando en este espacio.",
-    startButton: "Comenzar ✨",
+    startButton: "Comenzar",
     nextEchoIn: "Próximo Eco En",
     inputPlaceholder: "Deja tu estado de ánimo aquí...",
     clickToClose: "Haz clic afuera para cerrar",
-    voiceFromNebula: "Voz de la nebulosa ✨",
+    voiceFromNebula: "Voz de la nebulosa",
     languageNames: {
       zh: "中文",
       en: "English",
@@ -844,8 +844,8 @@ export default function Home() {
 
       {/* 欢迎弹窗 */}
       {showWelcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900/90 border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-black/70 border border-white/20 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
             {/* 语言选择器 */}
             <div className="absolute top-4 right-4">
               <div className="relative">
@@ -886,16 +886,16 @@ export default function Home() {
 
             <div className="text-center mb-6">
               <div className="relative w-16 h-16 mx-auto mb-4">
-                <div className="absolute inset-0 bg-cyan-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                <Globe className="relative w-16 h-16 text-cyan-400" />
+                <div className="absolute inset-0 bg-white rounded-full blur-xl opacity-10"></div>
+                <Globe className="relative w-16 h-16 text-white/60" />
               </div>
-              <h2 className="text-2xl font-light text-white mb-4">
+              <h2 className="text-2xl font-light text-white/90 mb-4">
                 {t.welcomeTitle}
               </h2>
-              <p className="text-white/60 text-sm leading-relaxed mb-2">
+              <p className="text-white/50 text-sm leading-relaxed mb-2">
                 {t.welcomeText1}
               </p>
-              <p className="text-white/60 text-sm leading-relaxed">
+              <p className="text-white/50 text-sm leading-relaxed">
                 {t.welcomeText2}
               </p>
             </div>
@@ -911,7 +911,7 @@ export default function Home() {
                   });
                 }
               }}
-              className="w-full py-3 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 rounded-xl text-cyan-300 font-medium transition-colors"
+              className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors"
             >
               {t.startButton}
             </button>
