@@ -442,7 +442,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
 
           // 多层波浪叠加
           const wave1 = Math.sin((x * 0.15 + time * 0.5) * Math.PI) * 6;
-          const wave2 = Math.sin((x * 0.08 + z * 0.1 + time * 0.3) * Math.PI) * 4;
+          const wave2 =
+            Math.sin((x * 0.08 + z * 0.1 + time * 0.3) * Math.PI) * 4;
           const wave3 = Math.cos((z * 0.2 + time * 0.7) * Math.PI) * 3;
           const y = wave1 + wave2 + wave3;
 
@@ -1300,7 +1301,10 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                   targetPositions = generateRiverShape(particleCount);
                   break;
                 case "wave":
-                  targetPositions = generateWaveShape(particleCount, elapsedTime);
+                  targetPositions = generateWaveShape(
+                    particleCount,
+                    elapsedTime
+                  );
                   break;
                 default:
                   targetPositions = originalPositionsRef.current!;

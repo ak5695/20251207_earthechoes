@@ -689,7 +689,8 @@ export default function Home() {
     let animationId: number;
     const updateLinePosition = () => {
       if (threeSceneRef.current) {
-        const pos = threeSceneRef.current.getHighlightedParticleScreenPosition();
+        const pos =
+          threeSceneRef.current.getHighlightedParticleScreenPosition();
         setParticleLinePos(pos);
       }
       animationId = requestAnimationFrame(updateLinePosition);
@@ -701,12 +702,7 @@ export default function Home() {
       cancelAnimationFrame(animationId);
       setParticleLinePos(null);
     };
-  }, [
-    isClient,
-    selectedParticle,
-    carouselParticle,
-    isCarouselVisible,
-  ]);
+  }, [isClient, selectedParticle, carouselParticle, isCarouselVisible]);
 
   return (
     <>
@@ -735,12 +731,16 @@ export default function Home() {
             >
               <stop
                 offset="0%"
-                stopColor={(selectedParticle || carouselParticle)?.color || "#6366f1"}
+                stopColor={
+                  (selectedParticle || carouselParticle)?.color || "#6366f1"
+                }
                 stopOpacity="0.8"
               />
               <stop
                 offset="100%"
-                stopColor={(selectedParticle || carouselParticle)?.color || "#6366f1"}
+                stopColor={
+                  (selectedParticle || carouselParticle)?.color || "#6366f1"
+                }
                 stopOpacity="0.2"
               />
             </linearGradient>
@@ -748,8 +748,14 @@ export default function Home() {
           <line
             x1={particleLinePos.x}
             y1={particleLinePos.y}
-            x2={cardRef.current.getBoundingClientRect().left + cardRef.current.getBoundingClientRect().width / 2}
-            y2={cardRef.current.getBoundingClientRect().top}
+            x2={
+              cardRef.current.getBoundingClientRect().left +
+              cardRef.current.getBoundingClientRect().width / 2
+            }
+            y2={
+              cardRef.current.getBoundingClientRect().top +
+              cardRef.current.getBoundingClientRect().height
+            }
             stroke="url(#lineGradient)"
             strokeWidth="1"
             strokeDasharray="4 4"
