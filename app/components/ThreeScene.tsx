@@ -317,16 +317,15 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const targetPositionsRef = useRef<Float32Array | null>(null); // 目标位置
     const shapeTimerRef = useRef<number>(0); // 形态计时器
     const SHAPE_DURATION = 60; // 每种形态持续60秒
-    const SHAPE_TRANSITION_DURATION = 8; // 过渡动画8秒（更平滑）
+    const SHAPE_TRANSITION_DURATION = 4; // 过渡动画4秒（收缩+混合）
+    const SHAPE_PAUSE_DURATION = 2; // 混合完成后停顿2秒
+    const SHAPE_EXPAND_DURATION = 2; // 展开动画2秒
+    const shapeExpandProgressRef = useRef<number>(0); // 展开进度 0-1
+    const shapePauseTimerRef = useRef<number>(0); // 停顿计时器
 
     // 形态切换时的摄像头动画状态
     const shapeTransitionCameraStateRef = useRef<{
-      phase:
-        | "idle"
-        | "zooming-out"
-        | "waiting-transition"
-        | "transitioning"
-        | "zooming-in";
+      phase: "idle" | "zooming-out" | "pausing" | "expanding" | "zooming-in";
       originalCameraPos: THREE.Vector3 | null;
     }>({ phase: "idle", originalCameraPos: null });
 
@@ -1327,7 +1326,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           const cameraState = shapeTransitionCameraStateRef.current;
           const CAMERA_ZOOM_DURATION = 3; // 摄像头移动动画3秒
 
-          // 检查是否需要开始摄像头后退（形态切换前3秒）
+          // 检查是否需要开始摄像头后退和形态过渡（第57秒开始）
           if (
             shapeTimerRef.current >= SHAPE_DURATION - CAMERA_ZOOM_DURATION &&
             cameraState.phase === "idle"
@@ -1352,61 +1351,33 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
               progress: 0,
               duration: CAMERA_ZOOM_DURATION, // 3秒后退
               onComplete: () => {
-                cameraState.phase = "waiting-transition";
+                // 摄像机后退完成，但粒子过渡可能还在进行
               },
             };
-          }
 
-          // 检查是否需要触发形态切换
-          if (
-            shapeTimerRef.current >= SHAPE_DURATION &&
-            cameraState.phase === "waiting-transition"
-          ) {
+            // 同时开始形态切换 - 设置目标形态
             shapeTimerRef.current = 0;
-            // 切换到下一个形态
             const shapes: ShapeMode[] = ["nebula", "river", "wave"];
             const currentIndex = shapes.indexOf(shapeModeRef.current);
             const nextIndex = (currentIndex + 1) % shapes.length;
             shapeTransitionTargetRef.current = shapes[nextIndex];
-            cameraState.phase = "transitioning";
           }
 
           // 如果目标形态不同于当前形态，进行过渡
           if (shapeTransitionTargetRef.current !== shapeModeRef.current) {
-            // 只有当摄像头已经后退后才开始粒子过渡
+            // 摄像机开始后退时就开始粒子过渡
             if (
-              cameraState.phase === "transitioning" ||
+              cameraState.phase === "zooming-out" ||
               cameraState.phase === "zooming-in"
             ) {
               shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
 
               if (shapeTransitionRef.current >= 1) {
-                // 过渡完成
-                shapeTransitionRef.current = 0;
+                // 收缩+混合完成，进入停顿阶段
+                shapeTransitionRef.current = 1; // 保持为1
                 shapeModeRef.current = shapeTransitionTargetRef.current;
-                // 更新原始位置为当前位置
-                const positions = nebulaRef.current.geometry.attributes.position
-                  .array as Float32Array;
-                originalPositionsRef.current = new Float32Array(positions);
-
-                // 形态切换完成后，摄像头返回初始位置
-                if (
-                  cameraState.phase === "transitioning" &&
-                  cameraState.originalCameraPos
-                ) {
-                  cameraState.phase = "zooming-in";
-                  cameraAnimationRef.current = {
-                    isAnimating: true,
-                    startPos: camera.position.clone(),
-                    targetPos: cameraState.originalCameraPos.clone(),
-                    progress: 0,
-                    duration: CAMERA_ZOOM_DURATION, // 3秒返回
-                    onComplete: () => {
-                      cameraState.phase = "idle";
-                      cameraState.originalCameraPos = null;
-                    },
-                  };
-                }
+                cameraState.phase = "pausing";
+                shapePauseTimerRef.current = 0;
               } else {
                 // 正在过渡中 - 使用"聚合-展开"效果
                 const elapsedTime = clock.elapsedTime;
@@ -1435,27 +1406,21 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                   .array as Float32Array;
                 const original = originalPositionsRef.current!;
 
-                // 缩放因子：0->0.5 收缩，0.5->1 展开
+                // 缩放因子：0->0.5 收缩到最小，0.5->1 展开
                 let scaleFactor: number;
                 let blendT: number;
 
                 if (progress < 0.4) {
-                  // 前40%：从原始位置收缩到中心（但不完全到中心）
+                  // 前40%：从原始位置收缩到最小
                   const shrinkProgress = progress / 0.4;
                   const shrinkEase = easeInOutCubic(shrinkProgress);
-                  scaleFactor = 1 - shrinkEase * 0.6; // 缩小到40%
+                  scaleFactor = 1 - shrinkEase * 0.9; // 缩小到10%
                   blendT = 0;
-                } else if (progress < 0.6) {
-                  // 中间20%：在收缩状态下混合
-                  const blendProgress = (progress - 0.4) / 0.2;
-                  scaleFactor = 0.4;
-                  blendT = easeInOutCubic(blendProgress);
                 } else {
-                  // 后40%：从中心展开到目标位置
-                  const expandProgress = (progress - 0.6) / 0.4;
-                  const expandEase = easeInOutCubic(expandProgress);
-                  scaleFactor = 0.4 + expandEase * 0.6; // 从40%恢复到100%
-                  blendT = 1;
+                  // 后60%：在收缩状态下完成位置混合
+                  const blendProgress = (progress - 0.4) / 0.6;
+                  scaleFactor = 0.1; // 保持最小状态
+                  blendT = easeInOutCubic(blendProgress);
                 }
 
                 for (let i = 0; i < particleCount; i++) {
@@ -1480,8 +1445,95 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                   true;
               }
             }
-          } else if (shapeModeRef.current === "wave") {
-            // 波形模式下持续更新位置以产生动画
+          }
+
+          // 停顿阶段处理（混合完成后，停顿2秒再展开）
+          if (cameraState.phase === "pausing") {
+            shapePauseTimerRef.current += delta;
+
+            if (shapePauseTimerRef.current >= SHAPE_PAUSE_DURATION) {
+              // 停顿完成，进入展开阶段
+              cameraState.phase = "expanding";
+              shapeExpandProgressRef.current = 0;
+            }
+            // 停顿期间保持10%缩放状态，不做任何位置更新
+          }
+
+          // 展开阶段处理（混合完成后，从10%展开到100%）
+          if (cameraState.phase === "expanding") {
+            shapeExpandProgressRef.current += delta / SHAPE_EXPAND_DURATION;
+
+            if (shapeExpandProgressRef.current >= 1) {
+              // 展开完成
+              shapeExpandProgressRef.current = 0;
+              shapeTransitionRef.current = 0;
+              shapeTransitionTargetRef.current = shapeModeRef.current;
+
+              // 更新原始位置为当前位置
+              const positions = nebulaRef.current.geometry.attributes.position
+                .array as Float32Array;
+              originalPositionsRef.current = new Float32Array(positions);
+
+              // 开始摄像头返回
+              if (cameraState.originalCameraPos) {
+                cameraState.phase = "zooming-in";
+                cameraAnimationRef.current = {
+                  isAnimating: true,
+                  startPos: camera.position.clone(),
+                  targetPos: cameraState.originalCameraPos.clone(),
+                  progress: 0,
+                  duration: CAMERA_ZOOM_DURATION,
+                  onComplete: () => {
+                    cameraState.phase = "idle";
+                    cameraState.originalCameraPos = null;
+                  },
+                };
+              } else {
+                cameraState.phase = "idle";
+              }
+            } else {
+              // 正在展开中
+              const expandProgress = shapeExpandProgressRef.current;
+              const expandEase = easeInOutCubic(expandProgress);
+              const scaleFactor = 0.1 + expandEase * 0.9; // 从10%恢复到100%
+
+              const positions = nebulaRef.current.geometry.attributes.position
+                .array as Float32Array;
+
+              // 获取目标形态位置
+              let targetPositions: Float32Array;
+              const elapsedTime = clock.elapsedTime;
+              switch (shapeModeRef.current) {
+                case "nebula":
+                  targetPositions = generateNebulaShape(particleCount);
+                  break;
+                case "river":
+                  targetPositions = generateRiverShape(particleCount);
+                  break;
+                case "wave":
+                  targetPositions = generateWaveShape(
+                    particleCount,
+                    elapsedTime
+                  );
+                  break;
+                default:
+                  targetPositions = originalPositionsRef.current!;
+              }
+
+              for (let i = 0; i < particleCount; i++) {
+                const idx = i * 3;
+                // 以目标形态位置进行缩放
+                positions[idx] = targetPositions[idx] * scaleFactor;
+                positions[idx + 1] = targetPositions[idx + 1] * scaleFactor;
+                positions[idx + 2] = targetPositions[idx + 2] * scaleFactor;
+              }
+              nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+            }
+          } else if (
+            shapeModeRef.current === "wave" &&
+            cameraState.phase === "idle"
+          ) {
+            // 波形模式下持续更新位置以产生动画（仅在idle状态）
             const elapsedTime = clock.elapsedTime;
             const positions = nebulaRef.current.geometry.attributes.position
               .array as Float32Array;
@@ -1492,8 +1544,11 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
               positions[i] += (wavePositions[i] - positions[i]) * 0.02;
             }
             nebulaRef.current.geometry.attributes.position.needsUpdate = true;
-          } else if (shapeModeRef.current === "river") {
-            // 星河模式下添加流动效果
+          } else if (
+            shapeModeRef.current === "river" &&
+            cameraState.phase === "idle"
+          ) {
+            // 星河模式下添加流动效果（仅在idle状态）
             const positions = nebulaRef.current.geometry.attributes.position
               .array as Float32Array;
             const flowSpeed = 0.5;

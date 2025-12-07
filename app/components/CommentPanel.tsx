@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, Post, Comment, User, Like } from "@/lib/supabase";
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 // =============================================
 // Types
@@ -694,19 +695,26 @@ export default function CommentPanel({
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-linear-to-b from-gray-900/95 to-black/95 rounded-t-3xl max-h-[80vh] flex flex-col"
+        className="relative w-full max-w-lg bg-linear-to-b from-gray-900/95 to-black/95 rounded-t-3xl max-h-[80vh] flex flex-col animate-panel-enter"
         style={{ backdropFilter: "blur(20px)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <h2 className="text-white font-medium">
-            {t.comments} ({post.comments_count})
+            <TypingAnimation
+              duration={80}
+              delay={200}
+              showCursor={false}
+              className="text-white font-medium"
+            >
+              {`${t.comments} (${post.comments_count})`}
+            </TypingAnimation>
           </h2>
           <button
             onClick={onClose}
@@ -857,25 +865,48 @@ export default function CommentPanel({
           <div className="flex items-center gap-3">
             {currentUser && <Avatar user={currentUser} size={36} />}
 
-            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
-                placeholder={currentUser ? t.writeComment : t.loginToComment}
-                disabled={!currentUser}
-                className="flex-1 bg-transparent text-white placeholder-white/40 text-sm outline-none"
-              />
+            {currentUser ? (
+              <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-full px-4 py-2">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                  placeholder={t.writeComment}
+                  className="flex-1 bg-transparent text-white placeholder-white/40 text-sm outline-none"
+                />
 
+                <button
+                  onClick={handleSend}
+                  disabled={!inputText.trim() || sending}
+                  className="text-blue-400 disabled:text-white/20 text-sm font-medium transition-colors"
+                >
+                  {t.send}
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={handleSend}
-                disabled={!inputText.trim() || sending || !currentUser}
-                className="text-blue-400 disabled:text-white/20 text-sm font-medium transition-colors"
+                onClick={onUserRequired}
+                className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 rounded-full px-4 py-3 transition-colors cursor-pointer"
               >
-                {t.send}
+                <span className="text-white/60 text-sm">
+                  {t.loginToComment}
+                </span>
+                <svg
+                  className="w-4 h-4 text-white/40"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>

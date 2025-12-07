@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { X, Heart, MessageCircle, Trash2, LogOut } from "lucide-react";
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 interface ProfilePanelProps {
   currentUser: User;
@@ -234,18 +235,16 @@ export default function ProfilePanel({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${
-          isVisible && !isClosing ? "opacity-100" : "opacity-0"
+        className={`absolute inset-0 bg-black/70 backdrop-blur-md ${
+          isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
         }`}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`relative w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden transition-all duration-300 ${
-          isVisible && !isClosing
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 translate-y-4"
+        className={`relative w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
+          isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)" }}
       >
@@ -270,7 +269,14 @@ export default function ProfilePanel({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-white text-xl font-medium">
-                  {currentUser.nickname}
+                  <TypingAnimation
+                    duration={80}
+                    delay={200}
+                    showCursor={false}
+                    className="text-white text-xl font-medium"
+                  >
+                    {currentUser.nickname}
+                  </TypingAnimation>
                 </h2>
                 {currentUser.is_vip && (
                   <span className="px-1.5 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
@@ -280,12 +286,28 @@ export default function ProfilePanel({
               </div>
               {currentUser.region && (
                 <p className="text-white/50 text-sm mt-1">
-                  {t.region}: {currentUser.region}
+                  <TypingAnimation
+                    duration={60}
+                    delay={400}
+                    showCursor={false}
+                    className="text-white/50 text-sm"
+                  >
+                    {`${t.region}: ${currentUser.region}`}
+                  </TypingAnimation>
                 </p>
               )}
               <p className="text-white/40 text-xs mt-1">
-                {t.joinedAt}{" "}
-                {new Date(currentUser.created_at).toLocaleDateString()}
+                <TypingAnimation
+                  duration={50}
+                  delay={600}
+                  showCursor={true}
+                  blinkCursor={true}
+                  className="text-white/40 text-xs"
+                >
+                  {`${t.joinedAt} ${new Date(
+                    currentUser.created_at
+                  ).toLocaleDateString()}`}
+                </TypingAnimation>
               </p>
             </div>
           </div>

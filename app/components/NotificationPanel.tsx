@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Notification } from "@/lib/supabase";
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 interface NotificationPanelProps {
   currentUser: User | null;
@@ -266,18 +267,27 @@ export default function NotificationPanel({
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-gradient-to-b from-gray-900/95 to-black/95 rounded-t-3xl max-h-[70vh] flex flex-col"
+        className="relative w-full max-w-lg bg-gradient-to-b from-gray-900/95 to-black/95 rounded-t-3xl max-h-[70vh] flex flex-col animate-panel-enter"
         style={{ backdropFilter: "blur(20px)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <h2 className="text-white font-medium">{t.notifications}</h2>
+          <h2 className="text-white font-medium">
+            <TypingAnimation
+              duration={80}
+              delay={200}
+              showCursor={false}
+              className="text-white font-medium"
+            >
+              {t.notifications}
+            </TypingAnimation>
+          </h2>
           <div className="flex items-center gap-4">
             <button
               onClick={handleMarkAllRead}

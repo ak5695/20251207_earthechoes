@@ -6,6 +6,11 @@ import QueryProvider from "./providers/QueryProvider";
 export const metadata: Metadata = {
   title: "Echoes of the Stars - 星际回响",
   description: "A global music co-creation platform",
+  icons: {
+    icon: "/logo.webp",
+    shortcut: "/logo.webp",
+    apple: "/logo.webp",
+  },
 };
 
 export default function RootLayout({

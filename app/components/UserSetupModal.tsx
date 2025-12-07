@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { supabase, User } from "@/lib/supabase";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shuffle, Loader2 } from "lucide-react";
+import { TypingAnimation } from "@/components/ui/typing-animation";
+import { Shuffle, Loader2, X } from "lucide-react";
 
 interface UserSetupModalProps {
   onComplete: (user: User) => void;
@@ -217,6 +211,15 @@ export default function UserSetupModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isClosing, setIsClosing] = useState(false);
+
+  // 带动画的关闭处理
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 2000); // 等待动画完成
+  }, [onClose]);
 
   const handleRandomName = () => {
     const names =
@@ -362,162 +365,210 @@ export default function UserSetupModal({
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-slate-950/95 border-slate-800 backdrop-blur-xl">
-        <DialogHeader className="text-center">
-          <DialogTitle className="text-xl font-light text-white">
-            {activeTab === "login" ? t.welcomeBack : t.welcomeTitle}
-          </DialogTitle>
-          <DialogDescription className="text-slate-400">
-            {activeTab === "login" ? t.loginSubtitle : t.welcomeSubtitle}
-          </DialogDescription>
-        </DialogHeader>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      {/* 背景遮罩 */}
+      <div
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${
+          isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
+        }`}
+        onClick={handleClose}
+      />
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => {
-            setActiveTab(v as "register" | "login");
-            setError("");
-          }}
+      {/* 外层浮动容器 */}
+      <div className="animate-space-float-slow">
+        {/* 内层进出动画容器 - 添加高度过渡 */}
+        <div
+          className={`relative sm:max-w-md w-full bg-gray-900/95 border border-gray-700 backdrop-blur-xl rounded-lg p-6 shadow-lg transition-all duration-500 ease-out ${
+            isClosing ? "animate-card-exit" : "animate-card-enter"
+          }`}
         >
-          <TabsList className="grid w-full grid-cols-2 bg-slate-900/50">
-            <TabsTrigger
-              value="register"
-              className="data-[state=active]:bg-slate-800"
-            >
-              {t.register}
-            </TabsTrigger>
-            <TabsTrigger
-              value="login"
-              className="data-[state=active]:bg-slate-800"
-            >
-              {t.login}
-            </TabsTrigger>
-          </TabsList>
+          {/* 关闭按钮 */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-white/60 hover:text-white transition-opacity"
+          >
+            <X className="w-5 h-5" />
+          </button>
 
-          {/* Login Tab */}
-          <TabsContent value="login" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.email}</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.emailPlaceholder}
-                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.password}</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t.loginPasswordPlaceholder}
-                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            {success && (
-              <p className="text-sm text-green-400 text-center">{success}</p>
-            )}
-            {error && (
-              <p className="text-sm text-red-400 text-center">{error}</p>
-            )}
-            <Button
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full bg-slate-800 hover:bg-slate-700"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.login}
-            </Button>
-          </TabsContent>
-
-          {/* Register Tab */}
-          <TabsContent value="register" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.email}</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.emailPlaceholder}
-                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.password}</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t.passwordPlaceholder}
-                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.nickname}</label>
-              <div className="flex gap-2">
-                <Input
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  placeholder={t.nicknamePlaceholder}
-                  maxLength={20}
-                  className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleRandomName}
-                  className="border-slate-700 hover:bg-slate-800"
-                >
-                  <Shuffle className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">{t.region}</label>
-              <Input
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                placeholder={t.regionPlaceholder}
-                maxLength={50}
-                className="bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-slate-400">
-                {t.selectLanguage}
-              </label>
-              <select
-                value={userLanguage}
-                onChange={(e) => setUserLanguage(e.target.value)}
-                className="w-full h-10 px-3 rounded-md bg-slate-900/50 border border-slate-700 text-white text-sm"
+          {/* Header */}
+          <div className="flex flex-col gap-2 text-center mb-4">
+            <h2 className="text-xl font-light text-white">
+              <TypingAnimation
+                duration={80}
+                delay={200}
+                showCursor={false}
+                startOnView={false}
+                className="text-xl font-light text-white"
               >
-                <option value="zh">中文</option>
-                <option value="en">English</option>
-                <option value="ja">日本語</option>
-                <option value="ko">한국어</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-              </select>
-            </div>
-            {error && (
-              <p className="text-sm text-red-400 text-center">{error}</p>
-            )}
-            <Button
-              onClick={handleRegister}
-              disabled={loading}
-              className="w-full bg-slate-800 hover:bg-slate-700"
+                {activeTab === "login" ? t.welcomeBack : t.welcomeTitle}
+              </TypingAnimation>
+            </h2>
+            <p className="text-gray-400 text-sm">
+              <TypingAnimation
+                duration={60}
+                delay={600}
+                showCursor={true}
+                blinkCursor={true}
+                startOnView={false}
+                className="text-gray-400"
+              >
+                {activeTab === "login" ? t.loginSubtitle : t.welcomeSubtitle}
+              </TypingAnimation>
+            </p>
+          </div>
+
+          {/* 语言选择器 - 移到最上面 */}
+          <div className="mb-4">
+            <label className="text-sm text-gray-400 block mb-2">
+              {t.selectLanguage}
+            </label>
+            <select
+              value={userLanguage}
+              onChange={(e) => setUserLanguage(e.target.value)}
+              className="w-full h-10 px-3 rounded-md bg-gray-800/50 border border-gray-600 text-white text-sm transition-colors"
             >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                t.continue
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+          </div>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => {
+              setActiveTab(v as "register" | "login");
+              setError("");
+            }}
+          >
+            <TabsList className="grid w-full grid-cols-2 bg-gray-800/50">
+              <TabsTrigger
+                value="register"
+                className="data-[state=active]:bg-gray-700"
+              >
+                {t.register}
+              </TabsTrigger>
+              <TabsTrigger
+                value="login"
+                className="data-[state=active]:bg-gray-700"
+              >
+                {t.login}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Login Tab */}
+            <TabsContent value="login" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.email}</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.emailPlaceholder}
+                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.password}</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.loginPasswordPlaceholder}
+                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              {success && (
+                <p className="text-sm text-green-400 text-center">{success}</p>
               )}
-            </Button>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+              {error && (
+                <p className="text-sm text-red-400 text-center">{error}</p>
+              )}
+              <Button
+                onClick={handleLogin}
+                disabled={loading}
+                className="w-full bg-gray-700 hover:bg-gray-600"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  t.login
+                )}
+              </Button>
+            </TabsContent>
+
+            {/* Register Tab */}
+            <TabsContent value="register" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.email}</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.emailPlaceholder}
+                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.password}</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.passwordPlaceholder}
+                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.nickname}</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    placeholder={t.nicknamePlaceholder}
+                    maxLength={20}
+                    className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRandomName}
+                    className="border-gray-600 hover:bg-gray-700"
+                  >
+                    <Shuffle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">{t.region}</label>
+                <Input
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                  placeholder={t.regionPlaceholder}
+                  maxLength={50}
+                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              {error && (
+                <p className="text-sm text-red-400 text-center">{error}</p>
+              )}
+              <Button
+                onClick={handleRegister}
+                disabled={loading}
+                className="w-full bg-gray-700 hover:bg-gray-600"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  t.continue
+                )}
+              </Button>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ import NotificationPanel from "./components/NotificationPanel";
 import UserSetupModal from "./components/UserSetupModal";
 import ProfilePanel from "./components/ProfilePanel";
 import MoodCard from "./components/MoodCard";
+import { TypingAnimation } from "@/components/ui/typing-animation";
 
 // 多语言翻译
 type Language = "zh" | "en" | "ja" | "ko" | "fr" | "es";
@@ -29,7 +30,7 @@ const translations: Record<
   }
 > = {
   zh: {
-    welcomeTitle: "欢迎来到星际回响",
+    welcomeTitle: "星际回响",
     welcomeText1: "我们来自星辰，也终归于星辰，做这宇宙旋律的音符。",
     welcomeText2: "你在这留下的情绪表达，将会汇聚成一首音乐，回荡在这空间里。",
     startButton: "开始体验",
@@ -188,6 +189,7 @@ export default function Home() {
   const [isMusicLoading, setIsMusicLoading] = useState(false);
   const [floatAmplitude, setFloatAmplitude] = useState(0.3); // 浮动速度 0.1-2，默认0.3
   const [showWelcome, setShowWelcome] = useState(true); // 欢迎弹窗
+  const [isWelcomeClosing, setIsWelcomeClosing] = useState(false); // 欢迎窗口关闭动画
   const [language, setLanguage] = useState<Language>("zh"); // 当前语言
   const [showLangMenu, setShowLangMenu] = useState(false); // 语言选择菜单
   const [particleLinePos, setParticleLinePos] = useState<{
@@ -819,12 +821,6 @@ export default function Home() {
   const handleContribute = async () => {
     if (!inputText.trim()) return;
 
-    // 如果用户未登录，弹出登录框
-    if (!currentUser) {
-      setShowUserSetup(true);
-      return;
-    }
-
     // 暂停轮播直到输入框恢复
     setCarouselPausedUntil(Infinity);
     setCarouselParticle(null);
@@ -844,22 +840,45 @@ export default function Home() {
     const textToSave = inputText;
     setPendingText(textToSave);
 
-    // 保存到数据库
-    try {
-      const { error } = await supabase.from("posts").insert({
-        user_id: currentUser.id,
-        content: textToSave,
-        mood: "思绪",
-        color: moodColor,
-        language: language,
-      });
+    // 如果用户已登录，保存到数据库；否则只存本地
+    if (currentUser) {
+      try {
+        const { error } = await supabase.from("posts").insert({
+          user_id: currentUser.id,
+          content: textToSave,
+          mood: "思绪",
+          color: moodColor,
+          language: language,
+        });
 
-      if (error) {
-        console.error("Error saving post:", error);
-        // 继续动画，但帖子可能未保存
+        if (error) {
+          console.error("Error saving post:", error);
+        }
+      } catch (err) {
+        console.error("Error saving post:", err);
       }
-    } catch (err) {
-      console.error("Error saving post:", err);
+    } else {
+      // 未登录用户：存储到本地
+      try {
+        const localPosts = JSON.parse(
+          localStorage.getItem("earthechoes_local_posts") || "[]"
+        );
+        localPosts.push({
+          id: `local_${Date.now()}`,
+          content: textToSave,
+          mood: "思绪",
+          color: moodColor,
+          language: language,
+          created_at: new Date().toISOString(),
+          is_local: true,
+        });
+        localStorage.setItem(
+          "earthechoes_local_posts",
+          JSON.stringify(localPosts)
+        );
+      } catch (err) {
+        console.error("Error saving to local storage:", err);
+      }
     }
 
     // 1. Condense 并触发摄像头动画
@@ -1105,10 +1124,6 @@ export default function Home() {
         <div className="flex justify-between items-start pointer-events-auto">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity cursor-pointer">
-              <div className="relative w-8 h-8">
-                <div className="absolute inset-0 bg-cyan-500 rounded-full blur-md opacity-50 animate-pulse"></div>
-                <Globe className="relative w-8 h-8 text-cyan-400" />
-              </div>
               <span className="text-base md:text-lg  font-bold tracking-wider text-white/15">
                 Echoes of the Stars
               </span>
@@ -1162,7 +1177,7 @@ export default function Home() {
                   setShowUserSetup(true);
                 }
               }}
-              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white/10 hover:bg-white/20 transition-colors"
+              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white/5 hover:bg-white/10 transition-colors"
             >
               {currentUser ? (
                 <span className="text-white font-medium text-sm">
@@ -1288,77 +1303,135 @@ export default function Home() {
 
       {/* 欢迎弹窗 */}
       {showWelcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-black/70 border border-white/20 rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-in">
-            {/* 语言选择器 */}
-            <div className="absolute top-4 right-4">
-              <div className="relative">
-                <button
-                  onClick={() => setShowLangMenu(!showLangMenu)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
-                  <span>{t.languageNames[language]}</span>
-                  <ChevronDown
-                    className={`w-3 h-3 transition-transform ${
-                      showLangMenu ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {showLangMenu && (
-                  <div className="absolute top-full right-0 mt-1 bg-slate-800/95 border border-white/10 rounded-lg overflow-hidden shadow-xl z-10">
-                    {(Object.keys(translations) as Language[]).map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => {
-                          setLanguage(lang);
-                          setShowLangMenu(false);
-                        }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
-                          lang === language
-                            ? "text-cyan-400 bg-white/5"
-                            : "text-white/70"
-                        }`}
-                      >
-                        {translations[lang].languageNames[lang]}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* 背景遮罩 */}
+          <div
+            className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${
+              isWelcomeClosing
+                ? "animate-backdrop-exit"
+                : "animate-backdrop-enter"
+            }`}
+          />
 
-            <div className="text-center mb-6">
-              <div className="relative w-16 h-16 mx-auto mb-4">
-                <div className="absolute inset-0 bg-white rounded-full blur-xl opacity-10"></div>
-                <Globe className="relative w-16 h-16 text-white/60" />
-              </div>
-              <h2 className="text-2xl font-light text-white/90 mb-4">
-                {t.welcomeTitle}
-              </h2>
-              <p className="text-white/50 text-sm leading-relaxed mb-2">
-                {t.welcomeText1}
-              </p>
-              <p className="text-white/50 text-sm leading-relaxed">
-                {t.welcomeText2}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setShowWelcome(false);
-                // 点击确认后播放音乐
-                if (audioRef.current) {
-                  setIsMusicLoading(true);
-                  audioRef.current.play().catch((err) => {
-                    console.log("播放失败:", err);
-                    setIsMusicLoading(false);
-                  });
-                }
-              }}
-              className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors"
+          {/* 欢迎卡片 - 外层浮动，内层进出动画 */}
+          <div className="animate-space-float-slow">
+            <div
+              className={`relative bg-black/70 border border-white/20 rounded-2xl p-8 w-full max-w-[420px] shadow-2xl ${
+                isWelcomeClosing ? "animate-card-exit" : "animate-card-enter"
+              }`}
             >
-              {t.startButton}
-            </button>
+              {/* 语言选择器 */}
+              <div className="absolute top-4 right-4">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLangMenu(!showLangMenu)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>{t.languageNames[language]}</span>
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform ${
+                        showLangMenu ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {showLangMenu && (
+                    <div className="absolute top-full right-0 mt-1 bg-slate-800/95 border border-white/10 rounded-lg overflow-hidden shadow-xl z-10">
+                      {(Object.keys(translations) as Language[]).map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => {
+                            setLanguage(lang);
+                            setShowLangMenu(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
+                            lang === language
+                              ? "text-cyan-400 bg-white/5"
+                              : "text-white/70"
+                          }`}
+                        >
+                          {translations[lang].languageNames[lang]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="relative w-16 h-16 mx-auto mb-4">
+                  <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-30"></div>
+                  <svg
+                    viewBox="0 0 1024 1024"
+                    className="relative w-16 h-16 drop-shadow-lg"
+                  >
+                    <path
+                      d="M602.24 246.72a17.28 17.28 0 0 0-11.84-16.32l-42.88-14.4A90.56 90.56 0 0 1 490.24 160l-14.4-42.88a17.28 17.28 0 0 0-32 0L428.8 160a90.56 90.56 0 0 1-57.28 57.28l-42.88 14.4a17.28 17.28 0 0 0 0 32l42.88 14.4a90.56 90.56 0 0 1 57.28 57.28l14.4 42.88a17.28 17.28 0 0 0 32 0l14.4-42.88a90.56 90.56 0 0 1 57.28-57.28l42.88-14.4a17.28 17.28 0 0 0 12.48-16.96z m301.12 221.76l-48.32-16a101.44 101.44 0 0 1-64-64l-16-48.32a19.2 19.2 0 0 0-36.8 0l-16 48.32a101.44 101.44 0 0 1-64 64l-48.32 16a19.2 19.2 0 0 0 0 36.8l48.32 16a101.44 101.44 0 0 1 64 64l16 48.32a19.2 19.2 0 0 0 36.8 0l16-48.32a101.44 101.44 0 0 1 64-64l48.32-16a19.2 19.2 0 0 0 0-36.8z m-376.64 195.52l-64-20.8a131.84 131.84 0 0 1-83.52-83.52l-20.8-64a25.28 25.28 0 0 0-47.68 0l-20.8 64a131.84 131.84 0 0 1-82.24 83.52l-64 20.8a25.28 25.28 0 0 0 0 47.68l64 20.8a131.84 131.84 0 0 1 83.52 83.84l20.8 64a25.28 25.28 0 0 0 47.68 0l20.8-64a131.84 131.84 0 0 1 83.52-83.52l64-20.8a25.28 25.28 0 0 0 0-47.68z"
+                      fill="#f4ea29"
+                    />
+                  </svg>
+                </div>
+                {/* 固定高度的标题区域 */}
+                <div className="h-8 mb-4">
+                  <TypingAnimation
+                    duration={80}
+                    delay={200}
+                    showCursor={false}
+                    startOnView={false}
+                    className="text-xl md:text-2xl font-light text-white/90"
+                  >
+                    {t.welcomeTitle}
+                  </TypingAnimation>
+                </div>
+                {/* 固定高度的文字区域 */}
+                <div className="h-24 flex flex-col justify-start">
+                  <p className="text-white/50 text-sm leading-relaxed mb-2">
+                    <TypingAnimation
+                      duration={50}
+                      delay={600}
+                      showCursor={false}
+                      startOnView={false}
+                      className="text-white/50 text-sm leading-relaxed"
+                    >
+                      {t.welcomeText1}
+                    </TypingAnimation>
+                  </p>
+                  <p className="text-white/50 text-sm leading-relaxed">
+                    <TypingAnimation
+                      duration={50}
+                      delay={1200}
+                      showCursor={true}
+                      blinkCursor={true}
+                      startOnView={false}
+                      className="text-white/50 text-sm leading-relaxed"
+                    >
+                      {t.welcomeText2}
+                    </TypingAnimation>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsWelcomeClosing(true);
+                  // 等待动画完成后再关闭
+                  setTimeout(() => {
+                    setShowWelcome(false);
+                    setIsWelcomeClosing(false);
+                    // 点击确认后播放音乐
+                    if (audioRef.current) {
+                      setIsMusicLoading(true);
+                      audioRef.current.play().catch((err) => {
+                        console.log("播放失败:", err);
+                        setIsMusicLoading(false);
+                      });
+                    }
+                  }, 2000); // 2秒动画时长
+                }}
+                className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors"
+              >
+                {t.startButton}
+              </button>
+            </div>
           </div>
         </div>
       )}
