@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "600"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-});
+import QueryProvider from "./providers/QueryProvider";
 
 export const metadata: Metadata = {
-  title: "Earth Echoes - Global Music Co-creation",
+  title: "Echoes of the Stars - 星际回响",
   description: "A global music co-creation platform",
 };
 
@@ -26,10 +15,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
-      >
-        {children}
+      <body className="antialiased font-sans">
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

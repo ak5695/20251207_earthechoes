@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Send, Globe, X, ChevronDown } from "lucide-react";
+import { Send, Globe, ChevronDown, Bell } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase, User, Post } from "@/lib/supabase";
+import CommentPanel from "./components/CommentPanel";
+import NotificationPanel from "./components/NotificationPanel";
+import UserSetupModal from "./components/UserSetupModal";
+import ProfilePanel from "./components/ProfilePanel";
+import MoodCard from "./components/MoodCard";
 
 // 多语言翻译
 type Language = "zh" | "en" | "ja" | "ko" | "fr" | "es";
@@ -22,7 +29,7 @@ const translations: Record<
   }
 > = {
   zh: {
-    welcomeTitle: "欢迎来到 Earth Echoes",
+    welcomeTitle: "欢迎来到星际回响",
     welcomeText1: "我们来自星辰，也终归于星辰，做这宇宙旋律的音符。",
     welcomeText2: "你在这留下的情绪表达，将会汇聚成一首音乐，回荡在这空间里。",
     startButton: "开始体验",
@@ -40,7 +47,7 @@ const translations: Record<
     },
   },
   en: {
-    welcomeTitle: "Welcome to Earth Echoes",
+    welcomeTitle: "Welcome to Echoes of the Stars",
     welcomeText1:
       "We come from the stars, and to the stars we shall return, as notes in the cosmic melody.",
     welcomeText2:
@@ -60,7 +67,7 @@ const translations: Record<
     },
   },
   ja: {
-    welcomeTitle: "Earth Echoes へようこそ",
+    welcomeTitle: "星のこだまへようこそ",
     welcomeText1:
       "私たちは星から来て、星へと帰る。宇宙のメロディーの音符として。",
     welcomeText2:
@@ -80,7 +87,7 @@ const translations: Record<
     },
   },
   ko: {
-    welcomeTitle: "Earth Echoes에 오신 것을 환영합니다",
+    welcomeTitle: "별의 메아리에 오신 것을 환영합니다",
     welcomeText1:
       "우리는 별에서 왔고, 별로 돌아갑니다. 우주 멜로디의 음표로서.",
     welcomeText2:
@@ -100,7 +107,7 @@ const translations: Record<
     },
   },
   fr: {
-    welcomeTitle: "Bienvenue sur Earth Echoes",
+    welcomeTitle: "Bienvenue sur Échos des Étoiles",
     welcomeText1:
       "Nous venons des étoiles et retournons aux étoiles, comme des notes dans la mélodie cosmique.",
     welcomeText2:
@@ -120,7 +127,7 @@ const translations: Record<
     },
   },
   es: {
-    welcomeTitle: "Bienvenido a Earth Echoes",
+    welcomeTitle: "Bienvenido a Ecos de las Estrellas",
     welcomeText1:
       "Venimos de las estrellas y a las estrellas volveremos, como notas en la melodía cósmica.",
     welcomeText2:
@@ -173,6 +180,7 @@ export default function Home() {
   const [isCarouselFading, setIsCarouselFading] = useState(false); // 轮播卡片淡出动画
   const [carouselDisplayTime, setCarouselDisplayTime] = useState(5); // 轮播显示时间（秒）
   const [carouselPausedUntil, setCarouselPausedUntil] = useState(0); // 轮播暂停直到此时间戳
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false); // 鼠标悬浮暂停
   const [pendingText, setPendingText] = useState("");
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -187,6 +195,22 @@ export default function Home() {
     y: number;
   } | null>(null); // 粒子连线位置
 
+  // 评论系统状态
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showUserSetup, setShowUserSetup] = useState(false);
+  const [showCommentPanel, setShowCommentPanel] = useState(false);
+  const [commentPanelPost, setCommentPanelPost] = useState<
+    (Post & { user: User | null }) | null
+  >(null); // 评论面板的帖子数据
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+  const [showProfilePanel, setShowProfilePanel] = useState(false); // Profile 面板
+  const [isProfileClosing, setIsProfileClosing] = useState(false); // Profile 关闭动画
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+
+  // TanStack Query client for cache invalidation
+  const queryClient = useQueryClient();
+
   // 获取当前翻译
   const t = translations[language];
 
@@ -199,6 +223,22 @@ export default function Home() {
   > | null>(null);
   const carouselTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null); // 卡片 ref 用于连线
+
+  // 根据屏幕大小获取摄像机参数
+  const getCameraParamsForScreen = useCallback(() => {
+    if (typeof window === "undefined") {
+      return { cameraZ: 30, cameraTargetZ: 80, cameraTargetY: 50 };
+    }
+    const isMobile = window.innerWidth < 768;
+    const isSmallMobile = window.innerWidth < 480;
+
+    if (isSmallMobile) {
+      return { cameraZ: 50, cameraTargetZ: 130, cameraTargetY: 65 };
+    } else if (isMobile) {
+      return { cameraZ: 42, cameraTargetZ: 110, cameraTargetY: 58 };
+    }
+    return { cameraZ: 30, cameraTargetZ: 80, cameraTargetY: 50 };
+  }, []);
 
   // Animation Params - 更新后的参数结构
   const paramsRef = useRef<AnimationParams>({
@@ -253,6 +293,103 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // 根据屏幕大小调整摄像机参数
+  useEffect(() => {
+    if (!isClient) return;
+
+    const updateCameraForScreenSize = () => {
+      const camParams = getCameraParamsForScreen();
+      paramsRef.current.cameraZ = camParams.cameraZ;
+      paramsRef.current.cameraTargetZ = camParams.cameraTargetZ;
+      paramsRef.current.cameraTargetY = camParams.cameraTargetY;
+
+      // 通知 ThreeScene 更新
+      if (threeSceneRef.current) {
+        threeSceneRef.current.updateParams(paramsRef.current);
+      }
+    };
+
+    updateCameraForScreenSize();
+    window.addEventListener("resize", updateCameraForScreenSize);
+
+    return () => {
+      window.removeEventListener("resize", updateCameraForScreenSize);
+    };
+  }, [isClient, getCameraParamsForScreen]);
+
+  // 加载用户状态
+  useEffect(() => {
+    if (!isClient) return;
+
+    const loadUser = async () => {
+      const userId = localStorage.getItem("earthechoes_user_id");
+      if (userId) {
+        const { data } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        if (data) {
+          setCurrentUser(data);
+        }
+      }
+    };
+    loadUser();
+  }, [isClient]);
+
+  // 获取未读通知数量
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchUnreadCount = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", currentUser.id)
+        .eq("is_read", false);
+      setUnreadNotifications(count || 0);
+    };
+    fetchUnreadCount();
+
+    // 实时订阅
+    const channel = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${currentUser.id}`,
+        },
+        () => {
+          setUnreadNotifications((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser]);
+
+  // 获取用户点赞的帖子
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchLikedPosts = async () => {
+      const { data } = await supabase
+        .from("likes")
+        .select("post_id")
+        .eq("user_id", currentUser.id)
+        .not("post_id", "is", null);
+      if (data) {
+        setLikedPosts(new Set(data.map((l) => l.post_id!)));
+      }
+    };
+    fetchLikedPosts();
+  }, [currentUser]);
 
   // --- 背景音乐初始化 ---
   useEffect(() => {
@@ -478,8 +615,17 @@ export default function Home() {
   useEffect(() => {
     if (!isClient) return;
 
+    // 消失动画时长(秒)
+    const fadeOutDuration = 2;
+    // 等待时长(秒)
+    const waitDuration = 2;
+
+    // 淡出定时器引用
+    let fadeOutTimer: NodeJS.Timeout | null = null;
+    let hideTimer: NodeJS.Timeout | null = null;
+
     // 开始轮播
-    const showNextCard = () => {
+    const showNextCard = async () => {
       // 如果用户已选中卡片，跳过轮播
       if (selectedParticle) {
         return;
@@ -490,42 +636,103 @@ export default function Home() {
         return;
       }
 
+      // 如果鼠标悬浮在卡片上，跳过本次轮播
+      if (isCarouselHovered) {
+        return;
+      }
+
+      // 如果正在形态切换，跳过本次轮播
+      if (threeSceneRef.current?.isShapeTransitioning?.()) {
+        return;
+      }
+
       if (threeSceneRef.current) {
         const particle = threeSceneRef.current.getRandomNebulaParticle();
         if (particle) {
           setCarouselParticle(particle);
           setIsCarouselVisible(true);
           setIsCarouselFading(false);
+          // 帖子数据通过 useQuery 自动获取（基于 currentParticleText）
 
-          // 显示时间后淡出
-          setTimeout(() => {
-            setIsCarouselFading(true); // 开始淡出动画
-            setTimeout(() => {
+          // 显示时间后开始淡出
+          fadeOutTimer = setTimeout(() => {
+            // 如果鼠标悬浮，延迟淡出
+            if (isCarouselHovered) {
+              return;
+            }
+            setIsCarouselFading(true); // 开始淡出动画（2秒）
+            hideTimer = setTimeout(() => {
               setIsCarouselVisible(false);
               setIsCarouselFading(false);
-            }, 500); // 淡出动画时长
+            }, fadeOutDuration * 1000); // 等待淡出动画完成
           }, carouselDisplayTime * 1000);
         }
       }
     };
 
-    // 初始延迟2秒后开始
+    // 初始延迟后开始
     const initialDelay = setTimeout(() => {
       showNextCard();
-      // 轮播间隔 = 显示时间 + 2秒
+      // 轮播间隔 = 显示时间 + 淡出动画时间 + 等待时间
       carouselTimerRef.current = setInterval(
         showNextCard,
-        (carouselDisplayTime + 2) * 1000
+        (carouselDisplayTime + fadeOutDuration + waitDuration) * 1000
       );
-    }, 2000);
+    }, waitDuration * 1000);
 
     return () => {
       clearTimeout(initialDelay);
+      if (fadeOutTimer) clearTimeout(fadeOutTimer);
+      if (hideTimer) clearTimeout(hideTimer);
       if (carouselTimerRef.current) {
         clearInterval(carouselTimerRef.current);
       }
     };
-  }, [isClient, carouselDisplayTime, carouselPausedUntil, selectedParticle]);
+  }, [
+    isClient,
+    carouselDisplayTime,
+    carouselPausedUntil,
+    selectedParticle,
+    isCarouselHovered,
+  ]);
+
+  // 当前显示的粒子ID（用于查询）
+  const currentParticleId = useMemo(() => {
+    const particle = selectedParticle || carouselParticle;
+    return particle?.id || null;
+  }, [selectedParticle, carouselParticle]);
+
+  const currentParticleText = useMemo(() => {
+    const particle = selectedParticle || carouselParticle;
+    return particle?.text || null;
+  }, [selectedParticle, carouselParticle]);
+
+  // 使用 TanStack Query 获取并缓存帖子数据（包括点赞和评论数）
+  const { data: currentPost, refetch: refetchPost } = useQuery({
+    queryKey: ["post", currentParticleText],
+    queryFn: async () => {
+      if (!currentParticleText) return null;
+
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .eq("content", currentParticleText)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      const { data: userData } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", data.user_id)
+        .single();
+
+      return { ...data, user: userData } as Post & { user: User };
+    },
+    enabled: !!currentParticleText,
+    staleTime: 10000, // 10秒内不重新请求
+    refetchInterval: 30000, // 每30秒自动刷新一次
+  });
 
   // 处理粒子点击
   const handleParticleClick = useCallback((particle: ContributedParticle) => {
@@ -544,12 +751,84 @@ export default function Home() {
     setCarouselPausedUntil(Date.now() + 5000);
     setTimeout(() => {
       setSelectedParticle(null);
+      // Query 会自动清空（currentParticleText 变为 null）
       setIsCardClosing(false);
     }, 250); // 与 fade-out 动画时长一致
   }, []);
 
+  // 打开评论面板
+  const handleOpenComments = useCallback(
+    async (particle: ContributedParticle) => {
+      // currentPost 通过 useQuery 自动获取（基于粒子的 text）
+      // 如果有帖子数据，就打开评论面板
+      if (currentPost) {
+        // 保存帖子数据到单独状态（这样即使 carouselParticle 被清空也不影响）
+        setCommentPanelPost(currentPost);
+        setShowCommentPanel(true);
+        // 关闭卡片，暂停轮播
+        setSelectedParticle(null);
+        setCarouselParticle(null);
+        setIsCarouselVisible(false);
+        setCarouselPausedUntil(Infinity); // 暂停轮播直到退出评论页
+      }
+      // 预设粒子没有帖子记录，静默处理
+    },
+    [currentPost]
+  );
+
+  // 点赞帖子
+  const handleLikePost = useCallback(
+    async (postId: string) => {
+      if (!currentUser) {
+        setShowUserSetup(true);
+        return;
+      }
+
+      const isLiked = likedPosts.has(postId);
+
+      try {
+        if (isLiked) {
+          await supabase
+            .from("likes")
+            .delete()
+            .eq("user_id", currentUser.id)
+            .eq("post_id", postId);
+          setLikedPosts((prev) => {
+            const next = new Set(prev);
+            next.delete(postId);
+            return next;
+          });
+        } else {
+          await supabase.from("likes").insert({
+            user_id: currentUser.id,
+            post_id: postId,
+          });
+          setLikedPosts((prev) => new Set([...prev, postId]));
+        }
+        // 刷新帖子数据以更新点赞数
+        queryClient.invalidateQueries({
+          queryKey: ["post", currentParticleText],
+        });
+      } catch (err) {
+        console.error("Error toggling like:", err);
+      }
+    },
+    [currentUser, likedPosts, queryClient, currentParticleText]
+  );
+
   const handleContribute = async () => {
     if (!inputText.trim()) return;
+
+    // 如果用户未登录，弹出登录框
+    if (!currentUser) {
+      setShowUserSetup(true);
+      return;
+    }
+
+    // 暂停轮播直到输入框恢复
+    setCarouselPausedUntil(Infinity);
+    setCarouselParticle(null);
+    setIsCarouselVisible(false);
 
     // Capture color before clearing text
     const colors = [
@@ -564,6 +843,24 @@ export default function Home() {
 
     const textToSave = inputText;
     setPendingText(textToSave);
+
+    // 保存到数据库
+    try {
+      const { error } = await supabase.from("posts").insert({
+        user_id: currentUser.id,
+        content: textToSave,
+        mood: "思绪",
+        color: moodColor,
+        language: language,
+      });
+
+      if (error) {
+        console.error("Error saving post:", error);
+        // 继续动画，但帖子可能未保存
+      }
+    } catch (err) {
+      console.error("Error saving post:", err);
+    }
 
     // 1. Condense 并触发摄像头动画
     setContributionState("condensing");
@@ -601,6 +898,8 @@ export default function Home() {
               }
               setContributionState("idle");
               setPendingText("");
+              // 输入框恢复后，延迟2秒恢复轮播
+              setCarouselPausedUntil(Date.now() + 2000);
             }
           );
         }
@@ -662,6 +961,34 @@ export default function Home() {
 
   const inputStyle = getInputStyles();
 
+  // 监测形态切换，切换期间隐藏轮播卡片
+  useEffect(() => {
+    if (!isClient || !threeSceneRef.current) return;
+
+    let checkInterval: NodeJS.Timeout | null = null;
+
+    const checkShapeTransition = () => {
+      if (threeSceneRef.current?.isShapeTransitioning?.()) {
+        // 形态切换开始，淡出当前轮播卡片
+        if (isCarouselVisible && !selectedParticle) {
+          setIsCarouselFading(true);
+          setTimeout(() => {
+            setIsCarouselVisible(false);
+            setIsCarouselFading(false);
+            setCarouselParticle(null);
+          }, 500);
+        }
+      }
+    };
+
+    // 每秒检查一次形态切换状态
+    checkInterval = setInterval(checkShapeTransition, 1000);
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [isClient, isCarouselVisible, selectedParticle]);
+
   // 高亮选中的粒子或轮播粒子
   useEffect(() => {
     if (threeSceneRef.current) {
@@ -712,6 +1039,7 @@ export default function Home() {
           ref={threeSceneRef}
           onParticleClick={handleParticleClick}
           selectedParticleId={selectedParticle?.id ?? null}
+          language={language}
         />
       )}
 
@@ -757,8 +1085,7 @@ export default function Home() {
               cardRef.current.getBoundingClientRect().height
             }
             stroke="url(#lineGradient)"
-            strokeWidth="1"
-            strokeDasharray="4 4"
+            strokeWidth="2"
             className="animate-pulse"
           />
           {/* 粒子端的小圆点 */}
@@ -782,8 +1109,8 @@ export default function Home() {
                 <div className="absolute inset-0 bg-cyan-500 rounded-full blur-md opacity-50 animate-pulse"></div>
                 <Globe className="relative w-8 h-8 text-cyan-400" />
               </div>
-              <span className="text-lg font-bold tracking-wider text-white/15">
-                Earth Echoes
+              <span className="text-base md:text-lg  font-bold tracking-wider text-white/15">
+                Echoes of the Stars
               </span>
             </div>
 
@@ -808,6 +1135,56 @@ export default function Home() {
               )}
             </button>
           </div>
+
+          {/* 右侧 - 通知和用户 */}
+          <div className="flex items-center gap-3">
+            {/* 通知按钮 */}
+            {currentUser && (
+              <button
+                onClick={() => setShowNotificationPanel(true)}
+                className="relative w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* 用户头像/登录按钮 */}
+            <button
+              onClick={() => {
+                if (currentUser) {
+                  setShowProfilePanel(true);
+                } else {
+                  setShowUserSetup(true);
+                }
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              {currentUser ? (
+                <span className="text-white font-medium text-sm">
+                  {currentUser.nickname.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-white/60"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Center Timer */}
@@ -819,23 +1196,29 @@ export default function Home() {
             {timeLeft}
           </div>
 
-          {/* 统一的心情卡片 - 时间下方 */}
+          {/* 统一的心情卡片 - 使用 MoodCard 组件 */}
           {(selectedParticle || (carouselParticle && isCarouselVisible)) && (
             <div
-              ref={cardRef}
-              className={`mt-6 w-80 md:w-96 mx-auto pointer-events-auto transition-all duration-1000 animate-space-float-slow ${
-                isCardClosing || isCarouselFading
-                  ? "opacity-0 scale-95"
-                  : "opacity-100 scale-100"
-              }`}
-              style={{ "--float-duration": "8s" } as React.CSSProperties}
+              className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow"
             >
               <div
-                className="bg-slate-900/70 border border-white/10 rounded-xl p-4 shadow-xl cursor-pointer hover:bg-slate-900/80 transition-colors animate-fade-in relative"
+                ref={cardRef}
+                className={`pointer-events-auto ${
+                  isCardClosing || isCarouselFading
+                    ? "animate-card-exit"
+                    : "animate-card-enter"
+                }`}
+                onMouseEnter={() => {
+                  if (!selectedParticle && carouselParticle) {
+                    setIsCarouselHovered(true);
+                  }
+                }}
+                onMouseLeave={() => {
+                  setIsCarouselHovered(false);
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!selectedParticle && carouselParticle) {
-                    // 点击轮播卡片时转为选中状态
                     setSelectedParticle(carouselParticle);
                     setCarouselParticle(null);
                     setIsCarouselVisible(false);
@@ -843,47 +1226,17 @@ export default function Home() {
                   }
                 }}
               >
-                {/* 关闭按钮 - 仅选中状态显示 */}
-                {selectedParticle && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseCard();
-                    }}
-                    className="absolute top-3 right-3 text-slate-400 hover:text-white transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-
-                <div className="flex items-center justify-between mb-2 pr-6">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full shadow-lg"
-                      style={{
-                        backgroundColor: (selectedParticle || carouselParticle)
-                          ?.color,
-                        boxShadow: `0 0 12px ${
-                          (selectedParticle || carouselParticle)?.color
-                        }`,
-                      }}
-                    />
-                    <span className="text-xs text-slate-400 font-mono">
-                      #{(selectedParticle || carouselParticle)?.id.slice(-6)}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {new Date(
-                      (selectedParticle || carouselParticle)?.timestamp || 0
-                    ).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-white text-sm mb-1 text-left">
-                  {(selectedParticle || carouselParticle)?.text}
-                </p>
-                <div className="text-xs text-slate-500 text-left">
-                  {t.voiceFromNebula}
-                </div>
+                <MoodCard
+                  particle={(selectedParticle || carouselParticle)!}
+                  isClosable={!!selectedParticle}
+                  onClose={handleCloseCard}
+                  onClick={() => {
+                    const particle = selectedParticle || carouselParticle;
+                    if (particle) handleOpenComments(particle);
+                  }}
+                  userName={currentPost?.user?.nickname}
+                  voiceLabel={t.voiceFromNebula}
+                />
               </div>
             </div>
           )}
@@ -909,12 +1262,12 @@ export default function Home() {
               onKeyDown={handleKeyDown}
               disabled={contributionState !== "idle"}
               placeholder={t.inputPlaceholder}
-              className={`w-full h-full bg-transparent border-none text-lg md:text-xl text-white placeholder:text-white/30 focus:outline-none text-center md:text-left transition-opacity duration-300 ${
+              className={`w-full h-full bg-transparent border-none text-base md:text-lg text-white placeholder:text-white/30 focus:outline-none text-center md:text-left transition-opacity duration-300 ${
                 contributionState !== "idle" ? "opacity-0" : "opacity-100"
               }`}
               style={{
-                paddingLeft: contributionState === "idle" ? "2rem" : "0",
-                paddingRight: contributionState === "idle" ? "3.5rem" : "0",
+                paddingLeft: contributionState === "idle" ? "0rem" : "0",
+                paddingRight: contributionState === "idle" ? "0rem" : "0",
               }}
             />
 
@@ -1010,6 +1363,70 @@ export default function Home() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* 用户设置弹窗 */}
+      {showUserSetup && (
+        <UserSetupModal
+          onComplete={(user) => {
+            setCurrentUser(user);
+            setShowUserSetup(false);
+          }}
+          onClose={() => setShowUserSetup(false)}
+          language={language}
+        />
+      )}
+
+      {/* 评论面板 */}
+      {showCommentPanel && commentPanelPost && (
+        <CommentPanel
+          post={commentPanelPost}
+          currentUser={currentUser}
+          onClose={() => {
+            setShowCommentPanel(false);
+            setCommentPanelPost(null);
+            // 恢复轮播
+            setCarouselPausedUntil(0);
+          }}
+          onUserRequired={() => setShowUserSetup(true)}
+          language={language}
+        />
+      )}
+
+      {/* 通知面板 */}
+      {showNotificationPanel && (
+        <NotificationPanel
+          currentUser={currentUser}
+          onClose={() => {
+            setShowNotificationPanel(false);
+            setUnreadNotifications(0);
+          }}
+          language={language}
+        />
+      )}
+
+      {/* Profile 面板 */}
+      {showProfilePanel && currentUser && (
+        <ProfilePanel
+          currentUser={currentUser}
+          onClose={() => {
+            setIsProfileClosing(true);
+            setTimeout(() => {
+              setShowProfilePanel(false);
+              setIsProfileClosing(false);
+            }, 300);
+          }}
+          onLogout={() => {
+            setIsProfileClosing(true);
+            setTimeout(() => {
+              setCurrentUser(null);
+              setShowProfilePanel(false);
+              setIsProfileClosing(false);
+            }, 300);
+          }}
+          language={language}
+          isClosing={isProfileClosing}
+        />
       )}
     </>
   );

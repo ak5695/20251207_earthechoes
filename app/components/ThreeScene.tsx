@@ -6,8 +6,10 @@ import {
   useImperativeHandle,
   forwardRef,
   useCallback,
+  useState,
 } from "react";
 import * as THREE from "three";
+import { supabase, Post } from "@/lib/supabase";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 // --- Types ---
@@ -82,12 +84,14 @@ export interface ThreeSceneHandle {
   highlightParticle: (particleId: string | null) => void; // 高亮粒子
   getRandomNebulaParticle: () => ContributedParticle | null; // 获取随机星云粒子
   getHighlightedParticleScreenPosition: () => { x: number; y: number } | null; // 获取高亮粒子的屏幕坐标
+  isShapeTransitioning: () => boolean; // 是否正在形态切换
 }
 
 interface ThreeSceneProps {
   params: AnimationParams;
   onParticleClick?: (particle: ContributedParticle) => void;
   selectedParticleId?: string | null; // 当前选中的粒子ID
+  language?: string; // 当前语言
   onReady?: () => void;
 }
 
@@ -261,7 +265,13 @@ const createTaperedTrailGeometry = (
 
 const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
   (
-    { params: initialParams, onParticleClick, selectedParticleId, onReady },
+    {
+      params: initialParams,
+      onParticleClick,
+      selectedParticleId,
+      language = "zh",
+      onReady,
+    },
     ref
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -289,8 +299,14 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const highlightSpriteRef = useRef<THREE.Sprite | null>(null); // 高亮光环精灵
     const nebulaParticleDataRef = useRef<ContributedParticle[]>([]); // 星云粒子数据
     const nebulaPausedUntilRef = useRef<number>(0); // 星云暂停旋转直到此时间戳
+    const carouselIndexRef = useRef<number>(0); // 轮播索引
     const highlightFadeRef = useRef<number>(0); // 高亮渐入渐出进度 (0-1)
     const highlightTargetRef = useRef<number>(0); // 高亮目标值 (0 或 1)
+    const particleLinesRef = useRef<THREE.LineSegments | null>(null); // 粒子连线
+
+    // 数据库心情数据
+    const [databasePosts, setDatabasePosts] = useState<Post[]>([]);
+    const databasePostsRef = useRef<Post[]>([]);
 
     // 形态变换系统
     type ShapeMode = "nebula" | "river" | "wave";
@@ -301,7 +317,18 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const targetPositionsRef = useRef<Float32Array | null>(null); // 目标位置
     const shapeTimerRef = useRef<number>(0); // 形态计时器
     const SHAPE_DURATION = 60; // 每种形态持续60秒
-    const SHAPE_TRANSITION_DURATION = 5; // 过渡动画5秒
+    const SHAPE_TRANSITION_DURATION = 8; // 过渡动画8秒（更平滑）
+
+    // 形态切换时的摄像头动画状态
+    const shapeTransitionCameraStateRef = useRef<{
+      phase:
+        | "idle"
+        | "zooming-out"
+        | "waiting-transition"
+        | "transitioning"
+        | "zooming-in";
+      originalCameraPos: THREE.Vector3 | null;
+    }>({ phase: "idle", originalCameraPos: null });
 
     // 摄像头动画状态
     const cameraAnimationRef = useRef<{
@@ -318,6 +345,51 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       onParticleClickRef.current = onParticleClick;
       onReadyRef.current = onReady;
     }, [onParticleClick, onReady]);
+
+    // 从数据库加载对应语言的心情数据
+    useEffect(() => {
+      const loadPosts = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("posts")
+            .select("*")
+            .eq("language", language)
+            .order("created_at", { ascending: false });
+
+          if (error) {
+            console.error("加载心情数据失败:", error);
+            return;
+          }
+
+          if (data && data.length > 0) {
+            setDatabasePosts(data);
+            databasePostsRef.current = data;
+            console.log(`加载了 ${data.length} 条 ${language} 心情数据`);
+
+            // 更新星云粒子的心情数据
+            if (nebulaParticleDataRef.current.length > 0) {
+              const updatedParticles = nebulaParticleDataRef.current.map(
+                (particle, i) => {
+                  const post = data[i % data.length];
+                  return {
+                    ...particle,
+                    id: post.id,
+                    text: post.content,
+                    color: post.color || particle.color,
+                    timestamp: new Date(post.created_at).getTime(),
+                  };
+                }
+              );
+              nebulaParticleDataRef.current = updatedParticles;
+            }
+          }
+        } catch (err) {
+          console.error("加载心情数据异常:", err);
+        }
+      };
+
+      loadPosts();
+    }, [language]);
 
     // 创建发光纹理（只创建一次）- 用于飞行粒子（更亮更实心）
     const getGlowTexture = useCallback(() => {
@@ -656,15 +728,31 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         highlightedParticleIdRef.current = particleId;
       },
 
-      // 获取随机星云粒子（用于轮播）
+      // 顺序获取星云粒子（用于轮播）
       getRandomNebulaParticle: () => {
         const data = nebulaParticleDataRef.current;
-        if (data.length === 0) return null;
-        const index = Math.floor(Math.random() * data.length);
-        const particle = data[index];
-        // 计算世界坐标
-        if (nebulaRef.current) {
-          const localPos = particle.position.clone();
+        // 只选择有内容的粒子
+        const validParticles = data.filter((p) => p.text && p.text.length > 0);
+        if (validParticles.length === 0) return null;
+
+        // 顺序获取，循环播放
+        const index = carouselIndexRef.current % validParticles.length;
+        carouselIndexRef.current = index + 1;
+
+        const particle = validParticles[index];
+
+        // 找到这个粒子在原始数据中的索引
+        const originalIndex = data.findIndex((p) => p.id === particle.id);
+
+        // 直接从星云几何体中读取当前位置（支持形态变换）
+        if (nebulaRef.current && originalIndex >= 0) {
+          const positions = nebulaRef.current.geometry.attributes.position
+            .array as Float32Array;
+          const localPos = new THREE.Vector3(
+            positions[originalIndex * 3],
+            positions[originalIndex * 3 + 1],
+            positions[originalIndex * 3 + 2]
+          );
           const worldPos = localPos.applyMatrix4(nebulaRef.current.matrixWorld);
           return { ...particle, position: worldPos };
         }
@@ -676,6 +764,10 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         if (!highlightSpriteRef.current || !cameraRef.current) return null;
         if (!highlightedParticleIdRef.current) return null;
         if (highlightFadeRef.current < 0.5) return null; // 淡入未完成时不显示连线
+
+        // 形态切换期间不显示连线
+        const cameraPhase = shapeTransitionCameraStateRef.current.phase;
+        if (cameraPhase !== "idle") return null;
 
         const sprite = highlightSpriteRef.current;
         if (!sprite.visible) return null;
@@ -691,6 +783,11 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         const y = ((-screenPos.y + 1) / 2) * window.innerHeight;
 
         return { x, y };
+      },
+
+      // 检查是否正在形态切换
+      isShapeTransitioning: () => {
+        return shapeTransitionCameraStateRef.current.phase !== "idle";
       },
 
       spawnProjectile: (
@@ -912,90 +1009,10 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       scene.add(nebula);
       nebulaRef.current = nebula;
 
-      // 为星云原始粒子创建预设心情数据 - 多语言诗意句子
-      const presetMoods = [
-        // 中文 - 古诗词与现代诗意
-        "举杯邀明月，对影成三人 🌙",
-        "山有木兮木有枝，心悦君兮君不知 💭",
-        "人生若只如初见，何事秋风悲画扇 🍂",
-        "愿你出走半生，归来仍是少年 ✨",
-        "世间所有的相遇，都是久别重逢 🌸",
-        "浮生若梦，为欢几何 🎐",
-        "陌上花开，可缓缓归矣 🌺",
-        "此心安处是吾乡 🏠",
-        "人间有味是清欢 🍵",
-        "但愿人长久，千里共婵娟 🌕",
-        "落霞与孤鹜齐飞，秋水共长天一色 🌅",
-        "采菊东篱下，悠然见南山 🏔️",
+      // 优先使用数据库中的心情
+      const dbPosts = databasePostsRef.current;
 
-        // English - Poetry & Philosophy
-        "We are made of star-stuff, contemplating the stars ✨",
-        "The wound is the place where the light enters you 💫",
-        "Not all those who wander are lost 🧭",
-        "To see a world in a grain of sand 🏖️",
-        "I took the road less traveled by 🛤️",
-        "What is essential is invisible to the eye 👁️",
-        "The universe is under no obligation to make sense to you 🌌",
-        "We are all in the gutter, but some of us are looking at the stars ⭐",
-        "In the middle of difficulty lies opportunity 🌱",
-        "The only way out is through 🚪",
-        "This too shall pass 🌊",
-        "Be the change you wish to see 🦋",
-
-        // 日本語 - 俳句と名言
-        "古池や蛙飛び込む水の音 🐸",
-        "花鳥風月の美しさに心打たれる 🌸",
-        "一期一会、この瞬間を大切に 🍃",
-        "雨降って地固まる ☔",
-        "月が綺麗ですね 🌙",
-        "七転び八起き 💪",
-        "人生は旅である 🗾",
-        "静けさや岩にしみ入る蝉の声 🪨",
-        "散る桜、残る桜も散る桜 🌸",
-        "今を生きる 🌅",
-
-        // 한국어 - Korean Poetry
-        "별 하나에 추억과, 별 하나에 사랑 ⭐",
-        "죽는 날까지 하늘을 우러러 한 점 부끄럼이 없기를 🌌",
-        "내 마음은 호수요 💧",
-        "꽃이 피면 달이 뜨고 🌷",
-        "바람이 분다, 살아야겠다 🍃",
-        "오늘 하루도 수고했어 💙",
-        "지금 이 순간이 영원이다 ✨",
-        "모든 것은 지나간다 🌊",
-
-        // Français - French Poetry
-        "Je pense, donc je suis 💭",
-        "La vie est un sommeil, l'amour en est le rêve 💫",
-        "Le cœur a ses raisons que la raison ne connaît point 💕",
-        "Carpe diem, cueillez dès aujourd'hui les roses de la vie 🌹",
-        "Il faut cultiver notre jardin 🌻",
-        "L'essentiel est invisible pour les yeux 👁️",
-        "Rien ne se perd, rien ne se crée, tout se transforme ♻️",
-        "Le temps passe et nous passons avec lui ⏳",
-
-        // Español - Spanish Poetry
-        "Caminante, no hay camino, se hace camino al andar 👣",
-        "La vida es sueño 💭",
-        "Podrán cortar todas las flores, pero no podrán detener la primavera 🌷",
-        "El que lee mucho y anda mucho, ve mucho y sabe mucho 📚",
-        "En un lugar de la Mancha... 🗺️",
-        "Solo sé que no sé nada 🤔",
-        "Hay más luz en tu cuerpo que en un medio día 🌞",
-        "Volverán las oscuras golondrinas 🐦",
-
-        // Mixed & Universal
-        "We are stardust, we are golden 🌟",
-        "Memento mori, memento vivere 💀🌱",
-        "宇宙の旋律に耳を澄ませて 🎵",
-        "L'univers tout entier dans un grain de poussière 🌌",
-        "寂静星河里的一粒尘埃 ✨",
-        "Amor fati - love your fate 💫",
-        "Per aspera ad astra 🚀",
-        "우주는 우리 안에 있다 🌀",
-      ];
-
-      // 为每个星云粒子创建虚拟的心情数据（用于点击检测）
+      // 为每个星云粒子创建心情数据（用于点击检测）
       const nebulaParticleData: ContributedParticle[] = [];
       for (let i = 0; i < particleCount; i++) {
         const pos = new THREE.Vector3(
@@ -1008,13 +1025,27 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           colors[i * 3 + 1],
           colors[i * 3 + 2]
         );
-        nebulaParticleData.push({
-          id: `nebula-${i}`,
-          text: presetMoods[i % presetMoods.length],
-          color: `#${color.getHexString()}`,
-          timestamp: Date.now() - Math.random() * 86400000 * 30, // 随机过去30天内
-          position: pos,
-        });
+
+        // 如果有数据库数据，使用真实 post ID 和内容
+        if (dbPosts.length > 0) {
+          const post = dbPosts[i % dbPosts.length];
+          nebulaParticleData.push({
+            id: post.id, // 使用真实的数据库 post ID！
+            text: post.content,
+            color: post.color || `#${color.getHexString()}`,
+            timestamp: new Date(post.created_at).getTime(),
+            position: pos,
+          });
+        } else {
+          // 先创建占位粒子，等数据库加载后更新
+          nebulaParticleData.push({
+            id: `nebula-${i}`,
+            text: "", // 空文本，等数据库加载
+            color: `#${color.getHexString()}`,
+            timestamp: Date.now() - Math.random() * 86400000 * 30,
+            position: pos,
+          });
+        }
       }
       nebulaParticleDataRef.current = nebulaParticleData;
 
@@ -1130,6 +1161,30 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       const starField = new THREE.Points(starsGeo, starsMat);
       scene.add(starField);
 
+      // --- 粒子连线系统（连接有数据的粒子） ---
+      const lineGeometry = new THREE.BufferGeometry();
+      // 预分配足够的空间（最大100条线 = 200个顶点）
+      const linePositions = new Float32Array(200 * 3);
+      lineGeometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(linePositions, 3)
+      );
+      lineGeometry.setDrawRange(0, 0); // 初始不绘制
+
+      const lineMaterial = new THREE.LineDashedMaterial({
+        color: 0x6366f1,
+        linewidth: 2,
+        dashSize: 3,
+        gapSize: 2,
+        transparent: true,
+        opacity: 0.3,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const particleLines = new THREE.LineSegments(lineGeometry, lineMaterial);
+      scene.add(particleLines);
+      particleLinesRef.current = particleLines;
+
       // --- 点击事件处理 ---
       const handleClick = (event: MouseEvent) => {
         if (!cameraRef.current || !nebulaRef.current) return;
@@ -1183,20 +1238,23 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           const intersect = nebulaIntersects[0];
           const index = intersect.index as number;
 
+          // 使用 ref 获取最新的粒子数据（支持数据库更新）
+          const currentParticleData = nebulaParticleDataRef.current;
+
           // 计算点击点到粒子的实际距离
           if (
-            index < nebulaParticleData.length &&
+            index < currentParticleData.length &&
             intersect.distanceToRay !== undefined
           ) {
             // 只有当距离在光圈范围内才触发
             if (intersect.distanceToRay < clickRadius) {
               // 获取实际的世界位置（考虑星云旋转和缩放）
-              const localPos = nebulaParticleData[index].position.clone();
+              const localPos = currentParticleData[index].position.clone();
               const worldPos = localPos.applyMatrix4(
                 nebulaRef.current.matrixWorld
               );
               const clickedParticle = {
-                ...nebulaParticleData[index],
+                ...currentParticleData[index],
                 position: worldPos,
               };
               onParticleClickRef.current?.(clickedParticle);
@@ -1266,60 +1324,161 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           const particleCount = initialParams.nebulaParticleCount;
           shapeTimerRef.current += delta;
 
-          // 检查是否需要切换形态
-          if (shapeTimerRef.current >= SHAPE_DURATION) {
+          const cameraState = shapeTransitionCameraStateRef.current;
+          const CAMERA_ZOOM_DURATION = 3; // 摄像头移动动画3秒
+
+          // 检查是否需要开始摄像头后退（形态切换前3秒）
+          if (
+            shapeTimerRef.current >= SHAPE_DURATION - CAMERA_ZOOM_DURATION &&
+            cameraState.phase === "idle"
+          ) {
+            // 开始摄像头后退动画
+            cameraState.phase = "zooming-out";
+            cameraState.originalCameraPos = new THREE.Vector3(
+              paramsRef.current.cameraX,
+              paramsRef.current.cameraY,
+              paramsRef.current.cameraZ
+            );
+
+            // 摄像头后退到"确认输入"位置
+            const targetX = paramsRef.current.cameraTargetX;
+            const targetY = paramsRef.current.cameraTargetY;
+            const targetZ = paramsRef.current.cameraTargetZ;
+
+            cameraAnimationRef.current = {
+              isAnimating: true,
+              startPos: camera.position.clone(),
+              targetPos: new THREE.Vector3(targetX, targetY, targetZ),
+              progress: 0,
+              duration: CAMERA_ZOOM_DURATION, // 3秒后退
+              onComplete: () => {
+                cameraState.phase = "waiting-transition";
+              },
+            };
+          }
+
+          // 检查是否需要触发形态切换
+          if (
+            shapeTimerRef.current >= SHAPE_DURATION &&
+            cameraState.phase === "waiting-transition"
+          ) {
             shapeTimerRef.current = 0;
             // 切换到下一个形态
             const shapes: ShapeMode[] = ["nebula", "river", "wave"];
             const currentIndex = shapes.indexOf(shapeModeRef.current);
             const nextIndex = (currentIndex + 1) % shapes.length;
             shapeTransitionTargetRef.current = shapes[nextIndex];
+            cameraState.phase = "transitioning";
           }
 
           // 如果目标形态不同于当前形态，进行过渡
           if (shapeTransitionTargetRef.current !== shapeModeRef.current) {
-            shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
+            // 只有当摄像头已经后退后才开始粒子过渡
+            if (
+              cameraState.phase === "transitioning" ||
+              cameraState.phase === "zooming-in"
+            ) {
+              shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
 
-            if (shapeTransitionRef.current >= 1) {
-              // 过渡完成
-              shapeTransitionRef.current = 0;
-              shapeModeRef.current = shapeTransitionTargetRef.current;
-              // 更新原始位置为当前位置
-              const positions = nebulaRef.current.geometry.attributes.position
-                .array as Float32Array;
-              originalPositionsRef.current = new Float32Array(positions);
-            } else {
-              // 正在过渡中 - 生成目标位置并插值
-              const elapsedTime = clock.elapsedTime;
-              let targetPositions: Float32Array;
+              if (shapeTransitionRef.current >= 1) {
+                // 过渡完成
+                shapeTransitionRef.current = 0;
+                shapeModeRef.current = shapeTransitionTargetRef.current;
+                // 更新原始位置为当前位置
+                const positions = nebulaRef.current.geometry.attributes.position
+                  .array as Float32Array;
+                originalPositionsRef.current = new Float32Array(positions);
 
-              switch (shapeTransitionTargetRef.current) {
-                case "nebula":
-                  targetPositions = generateNebulaShape(particleCount);
-                  break;
-                case "river":
-                  targetPositions = generateRiverShape(particleCount);
-                  break;
-                case "wave":
-                  targetPositions = generateWaveShape(
-                    particleCount,
-                    elapsedTime
-                  );
-                  break;
-                default:
-                  targetPositions = originalPositionsRef.current!;
+                // 形态切换完成后，摄像头返回初始位置
+                if (
+                  cameraState.phase === "transitioning" &&
+                  cameraState.originalCameraPos
+                ) {
+                  cameraState.phase = "zooming-in";
+                  cameraAnimationRef.current = {
+                    isAnimating: true,
+                    startPos: camera.position.clone(),
+                    targetPos: cameraState.originalCameraPos.clone(),
+                    progress: 0,
+                    duration: CAMERA_ZOOM_DURATION, // 3秒返回
+                    onComplete: () => {
+                      cameraState.phase = "idle";
+                      cameraState.originalCameraPos = null;
+                    },
+                  };
+                }
+              } else {
+                // 正在过渡中 - 使用"聚合-展开"效果
+                const elapsedTime = clock.elapsedTime;
+                let targetPositions: Float32Array;
+
+                switch (shapeTransitionTargetRef.current) {
+                  case "nebula":
+                    targetPositions = generateNebulaShape(particleCount);
+                    break;
+                  case "river":
+                    targetPositions = generateRiverShape(particleCount);
+                    break;
+                  case "wave":
+                    targetPositions = generateWaveShape(
+                      particleCount,
+                      elapsedTime
+                    );
+                    break;
+                  default:
+                    targetPositions = originalPositionsRef.current!;
+                }
+
+                // 使用双阶段过渡：先聚合到中心，再展开到目标
+                const progress = shapeTransitionRef.current;
+                const positions = nebulaRef.current.geometry.attributes.position
+                  .array as Float32Array;
+                const original = originalPositionsRef.current!;
+
+                // 缩放因子：0->0.5 收缩，0.5->1 展开
+                let scaleFactor: number;
+                let blendT: number;
+
+                if (progress < 0.4) {
+                  // 前40%：从原始位置收缩到中心（但不完全到中心）
+                  const shrinkProgress = progress / 0.4;
+                  const shrinkEase = easeInOutCubic(shrinkProgress);
+                  scaleFactor = 1 - shrinkEase * 0.6; // 缩小到40%
+                  blendT = 0;
+                } else if (progress < 0.6) {
+                  // 中间20%：在收缩状态下混合
+                  const blendProgress = (progress - 0.4) / 0.2;
+                  scaleFactor = 0.4;
+                  blendT = easeInOutCubic(blendProgress);
+                } else {
+                  // 后40%：从中心展开到目标位置
+                  const expandProgress = (progress - 0.6) / 0.4;
+                  const expandEase = easeInOutCubic(expandProgress);
+                  scaleFactor = 0.4 + expandEase * 0.6; // 从40%恢复到100%
+                  blendT = 1;
+                }
+
+                for (let i = 0; i < particleCount; i++) {
+                  const idx = i * 3;
+                  // 混合原始和目标位置
+                  const blendedX =
+                    original[idx] * (1 - blendT) +
+                    targetPositions[idx] * blendT;
+                  const blendedY =
+                    original[idx + 1] * (1 - blendT) +
+                    targetPositions[idx + 1] * blendT;
+                  const blendedZ =
+                    original[idx + 2] * (1 - blendT) +
+                    targetPositions[idx + 2] * blendT;
+
+                  // 应用缩放（向中心收缩/展开）
+                  positions[idx] = blendedX * scaleFactor;
+                  positions[idx + 1] = blendedY * scaleFactor;
+                  positions[idx + 2] = blendedZ * scaleFactor;
+                }
+                nebulaRef.current.geometry.attributes.position.needsUpdate =
+                  true;
               }
-
-              // 平滑过渡
-              const t = easeInOutCubic(shapeTransitionRef.current);
-              const positions = nebulaRef.current.geometry.attributes.position
-                .array as Float32Array;
-              const original = originalPositionsRef.current!;
-
-              for (let i = 0; i < particleCount * 3; i++) {
-                positions[i] = original[i] * (1 - t) + targetPositions[i] * t;
-              }
-              nebulaRef.current.geometry.attributes.position.needsUpdate = true;
             }
           } else if (shapeModeRef.current === "wave") {
             // 波形模式下持续更新位置以产生动画
@@ -1382,9 +1541,13 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         // 更新高亮粒子效果（带渐入渐出）
         if (highlightSpriteRef.current) {
           const highlightId = highlightedParticleIdRef.current;
+          const cameraPhase = shapeTransitionCameraStateRef.current.phase;
+
+          // 形态切换期间隐藏高亮
+          const shouldShow = highlightId && cameraPhase === "idle";
 
           // 更新目标值
-          highlightTargetRef.current = highlightId ? 1 : 0;
+          highlightTargetRef.current = shouldShow ? 1 : 0;
 
           // 平滑过渡到目标值（渐入渐出）
           const fadeSpeed = 3.0; // 渐变速度
@@ -1402,18 +1565,35 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             let targetPos: THREE.Vector3 | null = null;
             let particleColor = "#ffffff";
 
-            // 先检查星云原始粒子
-            if (highlightId && highlightId.startsWith("nebula-")) {
-              const index = parseInt(highlightId.replace("nebula-", ""));
-              if (index < nebulaParticleData.length && nebulaRef.current) {
-                const localPos = nebulaParticleData[index].position.clone();
+            // 先检查星云粒子数据（包括数据库加载的粒子）
+            if (highlightId) {
+              // 在星云粒子数据中查找（可能是 nebula-${i} 或数据库UUID）
+              const nebulaParticleIndex =
+                nebulaParticleDataRef.current.findIndex(
+                  (p) => p.id === highlightId
+                );
+
+              if (nebulaParticleIndex >= 0 && nebulaRef.current) {
+                const particle =
+                  nebulaParticleDataRef.current[nebulaParticleIndex];
+
+                // 直接从星云几何体中读取当前位置（支持形态变换）
+                const positions = nebulaRef.current.geometry.attributes.position
+                  .array as Float32Array;
+                const localPos = new THREE.Vector3(
+                  positions[nebulaParticleIndex * 3],
+                  positions[nebulaParticleIndex * 3 + 1],
+                  positions[nebulaParticleIndex * 3 + 2]
+                );
                 targetPos = localPos.applyMatrix4(
                   nebulaRef.current.matrixWorld
                 );
-                particleColor = nebulaParticleData[index].color;
+                particleColor = particle.color;
               }
-            } else if (highlightId) {
-              // 检查已定居的用户粒子
+            }
+
+            // 如果星云粒子中没找到，检查已定居的用户粒子
+            if (!targetPos && highlightId) {
               const settled = settledParticlesRef.current.find(
                 (p) => p.id === highlightId
               );
@@ -1449,6 +1629,89 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           } else {
             highlightSpriteRef.current.visible = false;
           }
+        }
+
+        // === 更新粒子连线（连接有数据的粒子） ===
+        // 节流：每10帧更新一次连线，减少计算量
+        const frameCount = Math.floor(clock.elapsedTime * 60) % 10;
+        if (particleLinesRef.current && nebulaRef.current && frameCount === 0) {
+          const lineMaterial = particleLinesRef.current
+            .material as THREE.LineDashedMaterial;
+          // 始终保持连线可见
+          lineMaterial.opacity = 0.3;
+
+          // 找出所有有数据的粒子（ID 不是 nebula-xxx 格式）
+          const dataParticles: { index: number; pos: THREE.Vector3 }[] = [];
+          const particleData = nebulaParticleDataRef.current;
+          const positions = nebulaRef.current.geometry.attributes.position
+            .array as Float32Array;
+
+          for (let i = 0; i < particleData.length; i++) {
+            const p = particleData[i];
+            // 检查是否是有真实数据的粒子（UUID格式或非 nebula- 开头）
+            if (p.id && !p.id.startsWith("nebula-") && p.text) {
+              const pos = new THREE.Vector3(
+                positions[i * 3],
+                positions[i * 3 + 1],
+                positions[i * 3 + 2]
+              );
+              // 应用星云的变换矩阵
+              pos.applyMatrix4(nebulaRef.current!.matrixWorld);
+              dataParticles.push({ index: i, pos });
+            }
+          }
+
+          // 生成连线（每个粒子只连接最近的几个粒子）
+          const linePositions = particleLinesRef.current.geometry.attributes
+            .position.array as Float32Array;
+          let lineIndex = 0;
+          const maxDistance = 35; // 最大连线距离
+          const maxLines = 100; // 最大连线数
+          const maxConnectionsPerParticle = 2; // 每个粒子最多连接2个
+          const connectionCount = new Map<number, number>(); // 记录每个粒子的连接数
+
+          // 构建所有可能的连线并按距离排序
+          const possibleLines: { i: number; j: number; dist: number }[] = [];
+          for (let i = 0; i < dataParticles.length; i++) {
+            for (let j = i + 1; j < dataParticles.length; j++) {
+              const dist = dataParticles[i].pos.distanceTo(
+                dataParticles[j].pos
+              );
+              if (dist < maxDistance) {
+                possibleLines.push({ i, j, dist });
+              }
+            }
+          }
+          // 按距离排序，优先连接近的粒子
+          possibleLines.sort((a, b) => a.dist - b.dist);
+
+          for (const line of possibleLines) {
+            if (lineIndex >= maxLines) break;
+            const countI = connectionCount.get(line.i) || 0;
+            const countJ = connectionCount.get(line.j) || 0;
+            // 每个粒子最多连接 maxConnectionsPerParticle 个
+            if (
+              countI < maxConnectionsPerParticle &&
+              countJ < maxConnectionsPerParticle
+            ) {
+              // 起点
+              linePositions[lineIndex * 6] = dataParticles[line.i].pos.x;
+              linePositions[lineIndex * 6 + 1] = dataParticles[line.i].pos.y;
+              linePositions[lineIndex * 6 + 2] = dataParticles[line.i].pos.z;
+              // 终点
+              linePositions[lineIndex * 6 + 3] = dataParticles[line.j].pos.x;
+              linePositions[lineIndex * 6 + 4] = dataParticles[line.j].pos.y;
+              linePositions[lineIndex * 6 + 5] = dataParticles[line.j].pos.z;
+              lineIndex++;
+              connectionCount.set(line.i, countI + 1);
+              connectionCount.set(line.j, countJ + 1);
+            }
+          }
+
+          particleLinesRef.current.geometry.attributes.position.needsUpdate =
+            true;
+          particleLinesRef.current.geometry.setDrawRange(0, lineIndex * 2);
+          particleLinesRef.current.computeLineDistances(); // 虚线需要这个
         }
 
         // 更新粒子动画
