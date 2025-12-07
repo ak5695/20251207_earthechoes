@@ -337,7 +337,7 @@ export default function Home() {
 
   // --- GUI Setup ---
   // 🔧 调试面板开关：设为 true 显示，false 隐藏
-  const SHOW_DEBUG_GUI = true;
+  const SHOW_DEBUG_GUI = false;
 
   useEffect(() => {
     if (!isClient || !SHOW_DEBUG_GUI) return;
