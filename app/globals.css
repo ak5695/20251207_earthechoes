@@ -1,26 +1,269 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #e2e8f0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #020617; /* Slate 950 */
+  font-family: var(--font-inter), "Inter", sans-serif;
+  color: #e2e8f0;
+  overflow: hidden;
+  margin: 0;
+}
+
+.font-mono {
+  font-family: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
+}
+
+/* Custom Animations */
+@keyframes scale-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.15);
+    filter: brightness(1.3);
+  }
+}
+
+.animate-scale-pulse {
+  animation: scale-pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
+      0 0 40px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.9),
+      0 0 60px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* 太空浮动动画 */
+@keyframes space-float {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-12px) translateX(6px);
+  }
+  50% {
+    transform: translateY(-6px) translateX(-4px);
+  }
+  75% {
+    transform: translateY(-16px) translateX(4px);
+  }
+}
+
+@keyframes space-float-slow {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  33% {
+    transform: translateY(-8px) translateX(4px);
+  }
+  66% {
+    transform: translateY(-4px) translateX(-6px);
+  }
+}
+
+@keyframes space-float-alt {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) translateX(-2px) rotate(0.5deg);
+  }
+  50% {
+    transform: translateY(-2px) translateX(3px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translateY(-7px) translateX(1px) rotate(0.3deg);
+  }
+}
+
+.animate-space-float {
+  animation: space-float 6s ease-in-out infinite;
+  animation-duration: var(--float-duration, 6s);
+}
+
+.animate-space-float-slow {
+  animation: space-float-slow 8s ease-in-out infinite;
+  animation-duration: var(--float-duration-slow, 8s);
+}
+
+.animate-space-float-alt {
+  animation: space-float-alt 7s ease-in-out infinite;
+  animation-duration: var(--float-duration-alt, 7s);
+}
+
+/* 波浪动画 */
+@keyframes wave-line-1 {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes wave-line-2 {
+  0%,
+  100% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(0.3);
+  }
+}
+@keyframes wave-line-3 {
+  0%,
+  100% {
+    transform: scaleY(0.8);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
+}
+@keyframes wave-line-4 {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(0.9);
+  }
+}
+@keyframes wave-line-5 {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(0.7);
+  }
+}
+
+.wave-line {
+  display: inline-block;
+  width: 2px;
+  min-height: 4px;
+  border-radius: 9999px;
+  transform-origin: center;
+}
+
+.wave-line-1 {
+  animation: wave-line-1 0.8s ease-in-out infinite;
+}
+.wave-line-2 {
+  animation: wave-line-2 0.7s ease-in-out infinite 0.1s;
+}
+.wave-line-3 {
+  animation: wave-line-3 0.9s ease-in-out infinite 0.2s;
+}
+.wave-line-4 {
+  animation: wave-line-4 0.6s ease-in-out infinite 0.15s;
+}
+.wave-line-5 {
+  animation: wave-line-5 0.75s ease-in-out infinite 0.05s;
+}
+
+.wave-paused .wave-line {
+  animation-play-state: paused;
+  transform: scaleY(0.4);
+}
+
+/* Card fade animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.25s ease-in forwards;
+}
+
+/* lil-gui custom styling adjustment */
+.lil-gui {
+  --background-color: #0f172a;
+  --text-color: #e2e8f0;
+  --title-background-color: #1e293b;
+  --widget-color: #334155;
+  --hover-color: #475569;
+  --focus-color: #6366f1;
+  --number-color: #22d3ee;
+  --string-color: #a5f3fc;
+}
+
+#canvas-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.pointer-events-none-recursive,
+.pointer-events-none-recursive * {
+  pointer-events: none !important;
+}
+
+.pointer-events-auto-recursive {
+  pointer-events: auto !important;
 }
