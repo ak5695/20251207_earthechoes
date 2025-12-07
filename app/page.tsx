@@ -1198,9 +1198,7 @@ export default function Home() {
 
           {/* 统一的心情卡片 - 使用 MoodCard 组件 */}
           {(selectedParticle || (carouselParticle && isCarouselVisible)) && (
-            <div
-              className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow"
-            >
+            <div className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow">
               <div
                 ref={cardRef}
                 className={`pointer-events-auto ${
