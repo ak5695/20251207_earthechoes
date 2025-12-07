@@ -81,6 +81,7 @@ export interface ThreeSceneHandle {
   resetCamera: (onComplete?: () => void) => void; // 返回初始位置
   highlightParticle: (particleId: string | null) => void; // 高亮粒子
   getRandomNebulaParticle: () => ContributedParticle | null; // 获取随机星云粒子
+  getHighlightedParticleScreenPosition: () => { x: number; y: number } | null; // 获取高亮粒子的屏幕坐标
 }
 
 interface ThreeSceneProps {
@@ -300,7 +301,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const targetPositionsRef = useRef<Float32Array | null>(null); // 目标位置
     const shapeTimerRef = useRef<number>(0); // 形态计时器
     const SHAPE_DURATION = 60; // 每种形态持续60秒
-    const SHAPE_TRANSITION_DURATION = 3; // 过渡动画3秒
+    const SHAPE_TRANSITION_DURATION = 5; // 过渡动画5秒
 
     // 摄像头动画状态
     const cameraAnimationRef = useRef<{
@@ -467,15 +468,15 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         const speedVar = paramsRef.current.wanderSpeedVariation;
         const radius = paramsRef.current.wanderRadius;
 
-        // 整个屏幕范围（确保在摄像头前方可见）
-        // 摄像头在 Z=30 位置，所以 minZ 不能太小
+        // 整个屏幕范围（确保在小屏幕和大屏幕都可见）
+        // 摄像头在 Z=30 位置
         const screenBounds = {
-          minX: -60,
-          maxX: 60,
-          minY: -40,
-          maxY: 40,
-          minZ: 5, // 确保粒子不会飞到摄像头后方
-          maxZ: 70,
+          minX: -30,
+          maxX: 30,
+          minY: -20,
+          maxY: 20,
+          minZ: 10, // 确保粒子不会飞到摄像头后方
+          maxZ: 50,
         };
 
         for (let i = 0; i < count; i++) {
@@ -667,6 +668,28 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           return { ...particle, position: worldPos };
         }
         return particle;
+      },
+
+      // 获取高亮粒子的屏幕坐标
+      getHighlightedParticleScreenPosition: () => {
+        if (!highlightSpriteRef.current || !cameraRef.current) return null;
+        if (!highlightedParticleIdRef.current) return null;
+        if (highlightFadeRef.current < 0.5) return null; // 淡入未完成时不显示连线
+
+        const sprite = highlightSpriteRef.current;
+        if (!sprite.visible) return null;
+
+        // 获取世界坐标
+        const worldPos = sprite.position.clone();
+
+        // 转换为屏幕坐标
+        const screenPos = worldPos.project(cameraRef.current);
+
+        // 转换为像素坐标
+        const x = ((screenPos.x + 1) / 2) * window.innerWidth;
+        const y = ((-screenPos.y + 1) / 2) * window.innerHeight;
+
+        return { x, y };
       },
 
       spawnProjectile: (

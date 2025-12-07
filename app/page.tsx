@@ -182,6 +182,10 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true); // 欢迎弹窗
   const [language, setLanguage] = useState<Language>("zh"); // 当前语言
   const [showLangMenu, setShowLangMenu] = useState(false); // 语言选择菜单
+  const [particleLinePos, setParticleLinePos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null); // 粒子连线位置
 
   // 获取当前翻译
   const t = translations[language];
@@ -194,6 +198,7 @@ export default function Home() {
     Awaited<ReturnType<typeof loadGUI>>
   > | null>(null);
   const carouselTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null); // 卡片 ref 用于连线
 
   // Animation Params - 更新后的参数结构
   const paramsRef = useRef<AnimationParams>({
@@ -332,7 +337,7 @@ export default function Home() {
 
   // --- GUI Setup ---
   // 🔧 调试面板开关：设为 true 显示，false 隐藏
-  const SHOW_DEBUG_GUI = false;
+  const SHOW_DEBUG_GUI = true;
 
   useEffect(() => {
     if (!isClient || !SHOW_DEBUG_GUI) return;
@@ -669,6 +674,40 @@ export default function Home() {
     }
   }, [selectedParticle, carouselParticle, isCarouselVisible]);
 
+  // 更新粒子连线位置
+  useEffect(() => {
+    if (!isClient) return;
+
+    const hasActiveCard =
+      selectedParticle || (carouselParticle && isCarouselVisible);
+    if (!hasActiveCard) {
+      setParticleLinePos(null);
+      return;
+    }
+
+    // 使用 requestAnimationFrame 持续更新连线位置
+    let animationId: number;
+    const updateLinePosition = () => {
+      if (threeSceneRef.current) {
+        const pos = threeSceneRef.current.getHighlightedParticleScreenPosition();
+        setParticleLinePos(pos);
+      }
+      animationId = requestAnimationFrame(updateLinePosition);
+    };
+
+    updateLinePosition();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      setParticleLinePos(null);
+    };
+  }, [
+    isClient,
+    selectedParticle,
+    carouselParticle,
+    isCarouselVisible,
+  ]);
+
   return (
     <>
       {isClient && (
@@ -678,6 +717,53 @@ export default function Home() {
           onParticleClick={handleParticleClick}
           selectedParticleId={selectedParticle?.id ?? null}
         />
+      )}
+
+      {/* 粒子连线 SVG */}
+      {particleLinePos && cardRef.current && (
+        <svg
+          className="fixed inset-0 z-20 pointer-events-none"
+          style={{ width: "100%", height: "100%" }}
+        >
+          <defs>
+            <linearGradient
+              id="lineGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop
+                offset="0%"
+                stopColor={(selectedParticle || carouselParticle)?.color || "#6366f1"}
+                stopOpacity="0.8"
+              />
+              <stop
+                offset="100%"
+                stopColor={(selectedParticle || carouselParticle)?.color || "#6366f1"}
+                stopOpacity="0.2"
+              />
+            </linearGradient>
+          </defs>
+          <line
+            x1={particleLinePos.x}
+            y1={particleLinePos.y}
+            x2={cardRef.current.getBoundingClientRect().left + cardRef.current.getBoundingClientRect().width / 2}
+            y2={cardRef.current.getBoundingClientRect().top}
+            stroke="url(#lineGradient)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            className="animate-pulse"
+          />
+          {/* 粒子端的小圆点 */}
+          <circle
+            cx={particleLinePos.x}
+            cy={particleLinePos.y}
+            r="3"
+            fill={(selectedParticle || carouselParticle)?.color || "#6366f1"}
+            opacity="0.8"
+          />
+        </svg>
       )}
 
       {/* Main UI Layer */}
@@ -730,6 +816,7 @@ export default function Home() {
           {/* 统一的心情卡片 - 时间下方 */}
           {(selectedParticle || (carouselParticle && isCarouselVisible)) && (
             <div
+              ref={cardRef}
               className={`mt-6 w-80 md:w-96 mx-auto pointer-events-auto transition-all duration-1000 animate-space-float-slow ${
                 isCardClosing || isCarouselFading
                   ? "opacity-0 scale-95"
