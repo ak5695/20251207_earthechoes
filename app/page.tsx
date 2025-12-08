@@ -10,7 +10,7 @@ import NotificationPanel from "./components/NotificationPanel";
 import UserSetupModal from "./components/UserSetupModal";
 import ProfilePanel from "./components/ProfilePanel";
 import MoodCard from "./components/MoodCard";
-import { TypingAnimation } from "@/components/ui/typing-animation";
+import { TypingAnimationLite } from "@/components/ui/typing-animation-lite";
 
 // 多语言翻译
 type Language = "zh" | "en" | "ja" | "ko" | "fr" | "es";
@@ -1373,40 +1373,37 @@ export default function Home() {
                 </div>
                 {/* 固定高度的标题区域 */}
                 <div className="h-8 mb-4 min-w-0">
-                  <TypingAnimation
+                  <TypingAnimationLite
                     duration={80}
                     delay={200}
                     showCursor={false}
-                    startOnView={false}
                     className="text-xl md:text-2xl font-light text-white/90 whitespace-nowrap overflow-hidden"
                   >
                     {t.welcomeTitle}
-                  </TypingAnimation>
+                  </TypingAnimationLite>
                 </div>
                 {/* 固定高度的文字区域 */}
                 <div className="h-32 sm:h-28 flex flex-col justify-start min-w-0">
                   <div className="text-white/50 text-sm leading-relaxed mb-2 min-h-[3rem] sm:min-h-[2.5rem]">
-                    <TypingAnimation
+                    <TypingAnimationLite
                       duration={50}
                       delay={600}
                       showCursor={false}
-                      startOnView={false}
                       className="text-white/50 text-sm leading-relaxed"
                     >
                       {t.welcomeText1}
-                    </TypingAnimation>
+                    </TypingAnimationLite>
                   </div>
                   <div className="text-white/50 text-sm leading-relaxed min-h-[3rem] sm:min-h-[2.5rem]">
-                    <TypingAnimation
+                    <TypingAnimationLite
                       duration={50}
                       delay={1200}
                       showCursor={true}
                       blinkCursor={true}
-                      startOnView={false}
                       className="text-white/50 text-sm leading-relaxed"
                     >
                       {t.welcomeText2}
-                    </TypingAnimation>
+                    </TypingAnimationLite>
                   </div>
                 </div>
               </div>
