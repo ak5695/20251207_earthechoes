@@ -31,7 +31,7 @@ const translations: Record<
 > = {
   zh: {
     welcomeTitle: "星际回响",
-    welcomeText1: "我们来自星辰，也终归于星辰，做这宇宙旋律的音符。",
+    welcomeText1: "我们来自星辰，也终归于星辰，只是这宇宙旋律的音符。",
     welcomeText2: "你在这留下的情绪表达，将会汇聚成一首音乐，回荡在这空间里。",
     startButton: "开始体验",
     nextEchoIn: "下次回响",
@@ -1303,7 +1303,7 @@ export default function Home() {
 
       {/* 欢迎弹窗 */}
       {showWelcome && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
           {/* 背景遮罩 */}
           <div
             className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${
@@ -1314,9 +1314,9 @@ export default function Home() {
           />
 
           {/* 欢迎卡片 - 外层浮动，内层进出动画 */}
-          <div className="animate-space-float-slow">
+          <div className="animate-space-float-slow w-full max-w-[420px]">
             <div
-              className={`relative bg-black/70 border border-white/20 rounded-2xl p-8 w-full max-w-[420px] shadow-2xl ${
+              className={`relative bg-black/70 border border-white/20 rounded-2xl p-6 sm:p-8 w-full shadow-2xl ${
                 isWelcomeClosing ? "animate-card-exit" : "animate-card-enter"
               }`}
             >
@@ -1372,20 +1372,20 @@ export default function Home() {
                   </svg>
                 </div>
                 {/* 固定高度的标题区域 */}
-                <div className="h-8 mb-4">
+                <div className="h-8 mb-4 min-w-0">
                   <TypingAnimation
                     duration={80}
                     delay={200}
                     showCursor={false}
                     startOnView={false}
-                    className="text-xl md:text-2xl font-light text-white/90"
+                    className="text-xl md:text-2xl font-light text-white/90 whitespace-nowrap overflow-hidden"
                   >
                     {t.welcomeTitle}
                   </TypingAnimation>
                 </div>
                 {/* 固定高度的文字区域 */}
-                <div className="h-24 flex flex-col justify-start">
-                  <p className="text-white/50 text-sm leading-relaxed mb-2">
+                <div className="h-32 sm:h-28 flex flex-col justify-start min-w-0">
+                  <div className="text-white/50 text-sm leading-relaxed mb-2 min-h-[3rem] sm:min-h-[2.5rem]">
                     <TypingAnimation
                       duration={50}
                       delay={600}
@@ -1395,8 +1395,8 @@ export default function Home() {
                     >
                       {t.welcomeText1}
                     </TypingAnimation>
-                  </p>
-                  <p className="text-white/50 text-sm leading-relaxed">
+                  </div>
+                  <div className="text-white/50 text-sm leading-relaxed min-h-[3rem] sm:min-h-[2.5rem]">
                     <TypingAnimation
                       duration={50}
                       delay={1200}
@@ -1407,7 +1407,7 @@ export default function Home() {
                     >
                       {t.welcomeText2}
                     </TypingAnimation>
-                  </p>
+                  </div>
                 </div>
               </div>
               <button
