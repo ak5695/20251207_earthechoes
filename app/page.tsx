@@ -403,8 +403,8 @@ export default function Home() {
     audio.volume = 0.3; // 固定初始音量
     audioRef.current = audio;
 
-    // 使用 preload="metadata" 让浏览器获取音频信息
-    audio.preload = "metadata";
+    // 使用 preload="auto" 让浏览器自动加载
+    audio.preload = "auto";
 
     const handleError = (e: Event) => {
       console.log("音频错误:", e, audio.error);
@@ -433,8 +433,8 @@ export default function Home() {
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("canplaythrough", handleCanPlayThrough);
 
-    // 设置音频源
-    audio.src = "/relax-meditation-music-424572.mp3";
+    // 设置音频源 - 使用压缩版本（3.4MB vs 14MB）
+    audio.src = "/ambient-music-compressed.mp3";
 
     return () => {
       audio.removeEventListener("error", handleError);
