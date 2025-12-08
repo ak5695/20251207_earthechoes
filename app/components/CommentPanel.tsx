@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, Post, Comment, User, Like } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import UserProfilePanel from "./UserProfilePanel";
 
 // =============================================
 // Types
@@ -191,12 +192,22 @@ function generateRandomAvatar(seed: string): string {
 // =============================================
 // Avatar Component
 // =============================================
-function Avatar({ user, size = 40 }: { user: User; size?: number }) {
+function Avatar({
+  user,
+  size = 40,
+  onClick,
+}: {
+  user: User;
+  size?: number;
+  onClick?: () => void;
+}) {
   const bgColor = generateRandomAvatar(user.id);
 
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-medium overflow-hidden"
+      className={`rounded-full flex items-center justify-center text-white font-medium overflow-hidden ${
+        onClick ? "cursor-pointer btn-icon" : ""
+      }`}
       style={{
         width: size,
         height: size,
@@ -204,6 +215,7 @@ function Avatar({ user, size = 40 }: { user: User; size?: number }) {
         backgroundColor: user.avatar_url ? "transparent" : bgColor,
         fontSize: size * 0.4,
       }}
+      onClick={onClick}
     >
       {user.avatar_url ? (
         <img
@@ -229,6 +241,7 @@ function CommentItem({
   likedComments,
   language,
   isReply = false,
+  onViewProfile,
 }: {
   comment: CommentWithUser;
   currentUser: User | null;
@@ -237,6 +250,7 @@ function CommentItem({
   likedComments: Set<string>;
   language: string;
   isReply?: boolean;
+  onViewProfile: (user: User) => void;
 }) {
   const t = translations[language] || translations.en;
   const [showReplies, setShowReplies] = useState(false);
@@ -248,12 +262,19 @@ function CommentItem({
         isReply ? "ml-12 mt-3" : "py-4 border-b border-white/10"
       }`}
     >
-      <Avatar user={comment.user} size={isReply ? 32 : 40} />
+      <Avatar
+        user={comment.user}
+        size={isReply ? 32 : 40}
+        onClick={() => onViewProfile(comment.user)}
+      />
 
       <div className="flex-1 min-w-0">
         {/* User Info */}
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-white/90 font-medium text-sm">
+          <span
+            className="text-white/90 font-medium text-sm cursor-pointer hover:text-white transition-colors"
+            onClick={() => onViewProfile(comment.user)}
+          >
             {comment.user.nickname}
           </span>
           {comment.user.is_vip && (
@@ -339,6 +360,7 @@ function CommentItem({
                     likedComments={likedComments}
                     language={language}
                     isReply
+                    onViewProfile={onViewProfile}
                   />
                 ))}
               </div>
@@ -371,6 +393,25 @@ export default function CommentPanel({
   const [liked, setLiked] = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
   const [postLikesCount, setPostLikesCount] = useState(post?.likes_count ?? 0);
+
+  // 查看用户资料状态
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [isProfileClosing, setIsProfileClosing] = useState(false);
+
+  // 处理查看用户资料
+  const handleViewProfile = useCallback((user: User) => {
+    setViewingUser(user);
+    setIsProfileClosing(false);
+  }, []);
+
+  // 关闭用户资料面板
+  const handleCloseProfile = useCallback(() => {
+    setIsProfileClosing(true);
+    setTimeout(() => {
+      setViewingUser(null);
+      setIsProfileClosing(false);
+    }, 300);
+  }, []);
 
   // 查询当前用户是否已点赞
   useEffect(() => {
@@ -739,10 +780,17 @@ export default function CommentPanel({
         {/* Post Content Card */}
         <div className="px-5 py-4 border-b border-white/10">
           <div className="flex items-start gap-3">
-            <Avatar user={post.user} size={36} />
+            <Avatar
+              user={post.user}
+              size={36}
+              onClick={() => handleViewProfile(post.user)}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-white/90 text-sm font-medium">
+                <span
+                  className="text-white/90 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleViewProfile(post.user)}
+                >
                   {post.user.nickname}
                 </span>
                 {post.user.is_vip && (
@@ -828,6 +876,7 @@ export default function CommentPanel({
                 onLike={handleLike}
                 likedComments={likedComments}
                 language={language}
+                onViewProfile={handleViewProfile}
               />
             ))
           )}
@@ -910,6 +959,16 @@ export default function CommentPanel({
           </div>
         </div>
       </div>
+
+      {/* User Profile Panel */}
+      {viewingUser && (
+        <UserProfilePanel
+          user={viewingUser}
+          onClose={handleCloseProfile}
+          language={language}
+          isClosing={isProfileClosing}
+        />
+      )}
     </div>
   );
 }

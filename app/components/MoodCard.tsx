@@ -78,9 +78,9 @@ export default function MoodCard({
                   e.stopPropagation();
                   onClose();
                 }}
-                className="h-5 w-5 text-slate-400 hover:text-white hover:bg-slate-800 btn-icon"
+                className="h-6 w-6 text-slate-400 hover:text-red-700 hover:bg-red-500/20 btn-close-hint"
               >
-                <X className="w-3 h-3" />
+                <X className="w-4 h-4" />
               </Button>
             )}
           </div>
