@@ -385,7 +385,7 @@ export default function UserSetupModal({
           {/* 关闭按钮 */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 text-white/60 hover:text-white transition-opacity"
+            className="absolute top-4 right-4 text-white/60 hover:text-white transition-opacity btn-icon"
           >
             <X className="w-5 h-5" />
           </button>
@@ -489,7 +489,7 @@ export default function UserSetupModal({
               <Button
                 onClick={handleLogin}
                 disabled={loading}
-                className="w-full bg-gray-700 hover:bg-gray-600"
+                className="w-full bg-gray-700 hover:bg-gray-600 btn-glow btn-ripple"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -535,7 +535,7 @@ export default function UserSetupModal({
                     variant="outline"
                     size="icon"
                     onClick={handleRandomName}
-                    className="border-gray-600 hover:bg-gray-700"
+                    className="border-gray-600 hover:bg-gray-700 btn-icon"
                   >
                     <Shuffle className="w-4 h-4" />
                   </Button>
@@ -557,7 +557,7 @@ export default function UserSetupModal({
               <Button
                 onClick={handleRegister}
                 disabled={loading}
-                className="w-full bg-gray-700 hover:bg-gray-600"
+                className="w-full bg-gray-700 hover:bg-gray-600 btn-glow btn-ripple"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

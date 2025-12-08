@@ -253,7 +253,7 @@ export default function ProfilePanel({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors btn-icon"
           >
             <X className="w-6 h-6" />
           </button>
@@ -366,7 +366,7 @@ export default function ProfilePanel({
                     </div>
                     <button
                       onClick={() => handleDeletePost(post.id)}
-                      className="text-white/30 hover:text-red-400 transition-colors"
+                      className="text-white/30 hover:text-red-400 transition-colors btn-icon"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -386,7 +386,7 @@ export default function ProfilePanel({
                           expandedPost === post.id ? null : post.id
                         )
                       }
-                      className="flex items-center gap-1 text-blue-400/80 hover:text-blue-400 transition-colors"
+                      className="flex items-center gap-1 text-blue-400/80 hover:text-blue-400 transition-colors btn-interactive"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                       {post.comments_count} {t.comments}
@@ -445,7 +445,7 @@ export default function ProfilePanel({
         <div className="border-t border-white/10 p-4">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors btn-glow btn-ripple"
           >
             <LogOut className="w-4 h-4" />
             {t.logout}

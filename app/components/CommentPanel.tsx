@@ -287,7 +287,7 @@ function CommentItem({
 
           <button
             onClick={() => onLike(comment.id)}
-            className={`flex items-center gap-1 text-xs transition-colors ${
+            className={`flex items-center gap-1 text-xs transition-colors btn-interactive ${
               isLiked ? "text-red-400" : "text-white/40 hover:text-white/60"
             }`}
           >
@@ -309,7 +309,7 @@ function CommentItem({
 
           <button
             onClick={() => onReply(comment)}
-            className="text-white/40 hover:text-white/60 text-xs transition-colors"
+            className="text-white/40 hover:text-white/60 text-xs transition-colors btn-interactive"
           >
             {t.reply}
           </button>
@@ -320,7 +320,7 @@ function CommentItem({
           <div className="mt-2">
             <button
               onClick={() => setShowReplies(!showReplies)}
-              className="text-blue-400 text-xs hover:text-blue-300 transition-colors"
+              className="text-blue-400 text-xs hover:text-blue-300 transition-colors btn-interactive"
             >
               {showReplies
                 ? t.hideReplies
@@ -718,7 +718,7 @@ export default function CommentPanel({
           </h2>
           <button
             onClick={onClose}
-            className="text-white/60 hover:text-white transition-colors"
+            className="text-white/60 hover:text-white transition-colors btn-icon"
           >
             <svg
               className="w-6 h-6"
@@ -760,7 +760,7 @@ export default function CommentPanel({
               <div className="flex items-center gap-4 mt-2 text-white/40 text-xs">
                 <span>{formatTimeAgo(post.created_at, language)}</span>
                 <button
-                  className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-white/10 transition-colors ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-white/10 transition-colors btn-interactive ${
                     liked ? "text-pink-400" : "text-white/40"
                   }`}
                   onClick={handleLikePost}
@@ -879,7 +879,7 @@ export default function CommentPanel({
                 <button
                   onClick={handleSend}
                   disabled={!inputText.trim() || sending}
-                  className="text-blue-400 disabled:text-white/20 text-sm font-medium transition-colors"
+                  className="text-blue-400 disabled:text-white/20 text-sm font-medium transition-colors btn-interactive"
                 >
                   {t.send}
                 </button>
@@ -887,7 +887,7 @@ export default function CommentPanel({
             ) : (
               <button
                 onClick={onUserRequired}
-                className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 rounded-full px-4 py-3 transition-colors cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 rounded-full px-4 py-3 transition-colors cursor-pointer btn-interactive"
               >
                 <span className="text-white/60 text-sm">
                   {t.loginToComment}

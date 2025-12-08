@@ -404,6 +404,95 @@ body {
   animation: fade-out 0.25s ease-in forwards;
 }
 
+/* 按钮交互效果 - 缩放和触感 */
+.btn-interactive {
+  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 0.15s ease, opacity 0.15s ease;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-interactive:hover {
+  transform: scale(1.05);
+}
+
+.btn-interactive:active {
+  transform: scale(0.95);
+}
+
+/* 禁用状态不要缩放 */
+.btn-interactive:disabled {
+  transform: scale(1);
+}
+
+/* 移动端触摸反馈 - 稍大的缩放效果 */
+@media (hover: none) and (pointer: coarse) {
+  .btn-interactive:active {
+    transform: scale(0.92);
+  }
+}
+
+/* 按钮按压波纹效果 */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-ripple:active::after {
+  width: 200%;
+  height: 200%;
+  opacity: 1;
+  transition: width 0s, height 0s, opacity 0s;
+}
+
+/* 发光按钮效果 */
+.btn-glow {
+  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    box-shadow 0.2s ease, filter 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-glow:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.btn-glow:active {
+  transform: scale(0.95);
+  filter: brightness(0.95);
+}
+
+/* 图标按钮特定样式 */
+.btn-icon {
+  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-icon:hover {
+  transform: scale(1.1);
+}
+
+.btn-icon:active {
+  transform: scale(0.9);
+}
+
 /* lil-gui custom styling adjustment */
 .lil-gui {
   --background-color: #0f172a;

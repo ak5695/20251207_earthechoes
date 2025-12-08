@@ -291,13 +291,13 @@ export default function NotificationPanel({
           <div className="flex items-center gap-4">
             <button
               onClick={handleMarkAllRead}
-              className="text-blue-400 text-sm hover:text-blue-300 transition-colors"
+              className="text-blue-400 text-sm hover:text-blue-300 transition-colors btn-interactive"
             >
               {t.markAllRead}
             </button>
             <button
               onClick={onClose}
-              className="text-white/60 hover:text-white transition-colors"
+              className="text-white/60 hover:text-white transition-colors btn-icon"
             >
               <svg
                 className="w-6 h-6"

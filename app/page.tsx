@@ -32,10 +32,11 @@ const translations: Record<
   zh: {
     welcomeTitle: "星际回响",
     welcomeText1: "我们来自星辰，也终归于星辰，只是这宇宙旋律的音符。",
-    welcomeText2: "你在这留下的情绪表达，将会汇聚成一首音乐，回荡在这空间里。",
+    welcomeText2:
+      "你在这留下的情绪和思考，将会汇聚成一首音乐，回荡在这空间里。",
     startButton: "开始体验",
     nextEchoIn: "下次回响",
-    inputPlaceholder: "在这里留下你的心情...",
+    inputPlaceholder: "留下你的心情或感悟...",
     clickToClose: "点击空白处关闭",
     voiceFromNebula: "来自星云的声音",
     languageNames: {
@@ -52,10 +53,10 @@ const translations: Record<
     welcomeText1:
       "We come from the stars, and to the stars we shall return, as notes in the cosmic melody.",
     welcomeText2:
-      "The emotions you leave here will converge into music, echoing through this space.",
+      "The emotions and thoughts you leave here will converge into music, echoing through this space.",
     startButton: "Start Experience",
     nextEchoIn: "Next Echo In",
-    inputPlaceholder: "Leave your vibe here...",
+    inputPlaceholder: "Share your mood or thoughts...",
     clickToClose: "Click outside to close",
     voiceFromNebula: "Voice from the nebula",
     languageNames: {
@@ -72,10 +73,10 @@ const translations: Record<
     welcomeText1:
       "私たちは星から来て、星へと帰る。宇宙のメロディーの音符として。",
     welcomeText2:
-      "ここに残すあなたの感情は、音楽となってこの空間に響き渡ります。",
+      "ここに残すあなたの感情と思考は、音楽となってこの空間に響き渡ります。",
     startButton: "体験を始める",
     nextEchoIn: "次のエコーまで",
-    inputPlaceholder: "あなたの気持ちを残して...",
+    inputPlaceholder: "気持ちや思いを残して...",
     clickToClose: "外側をクリックして閉じる",
     voiceFromNebula: "星雲からの声",
     languageNames: {
@@ -92,10 +93,10 @@ const translations: Record<
     welcomeText1:
       "우리는 별에서 왔고, 별로 돌아갑니다. 우주 멜로디의 음표로서.",
     welcomeText2:
-      "여기에 남기는 당신의 감정은 음악이 되어 이 공간에 울려 퍼집니다.",
+      "여기에 남기는 당신의 감정과 생각은 음악이 되어 이 공간에 울려 퍼집니다.",
     startButton: "시작하기",
     nextEchoIn: "다음 에코까지",
-    inputPlaceholder: "당신의 기분을 남겨주세요...",
+    inputPlaceholder: "기분이나 생각을 남겨주세요...",
     clickToClose: "바깥을 클릭하여 닫기",
     voiceFromNebula: "성운에서 온 목소리",
     languageNames: {
@@ -112,10 +113,10 @@ const translations: Record<
     welcomeText1:
       "Nous venons des étoiles et retournons aux étoiles, comme des notes dans la mélodie cosmique.",
     welcomeText2:
-      "Les émotions que vous laissez ici se transformeront en musique, résonnant dans cet espace.",
+      "Les émotions et pensées que vous laissez ici se transformeront en musique, résonnant dans cet espace.",
     startButton: "Commencer",
     nextEchoIn: "Prochain Écho",
-    inputPlaceholder: "Laissez votre humeur ici...",
+    inputPlaceholder: "Partagez votre humeur ou pensées...",
     clickToClose: "Cliquez à l'extérieur pour fermer",
     voiceFromNebula: "Voix de la nébuleuse",
     languageNames: {
@@ -132,10 +133,10 @@ const translations: Record<
     welcomeText1:
       "Venimos de las estrellas y a las estrellas volveremos, como notas en la melodía cósmica.",
     welcomeText2:
-      "Las emociones que dejes aquí se convertirán en música, resonando en este espacio.",
+      "Las emociones y pensamientos que dejes aquí se convertirán en música, resonando en este espacio.",
     startButton: "Comenzar",
     nextEchoIn: "Próximo Eco En",
-    inputPlaceholder: "Deja tu estado de ánimo aquí...",
+    inputPlaceholder: "Comparte tu ánimo o pensamientos...",
     clickToClose: "Haz clic afuera para cerrar",
     voiceFromNebula: "Voz de la nebulosa",
     languageNames: {
@@ -1133,7 +1134,7 @@ export default function Home() {
             <button
               onClick={toggleMusic}
               disabled={isMusicLoading}
-              className={`w-10 h-10 flex items-center justify-center gap-[2px] text-indigo-300/60 hover:text-indigo-300 transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center gap-[2px] text-indigo-300/60 hover:text-indigo-300 transition-colors btn-icon ${
                 !isMusicPlaying ? "wave-paused" : ""
               }`}
             >
@@ -1157,7 +1158,7 @@ export default function Home() {
             {currentUser && (
               <button
                 onClick={() => setShowNotificationPanel(true)}
-                className="relative w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                className="relative w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
               >
                 <Bell className="w-5 h-5" />
                 {unreadNotifications > 0 && (
@@ -1177,7 +1178,7 @@ export default function Home() {
                   setShowUserSetup(true);
                 }
               }}
-              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white/5 hover:bg-white/10 transition-colors"
+              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white/5 hover:bg-white/10 transition-colors btn-icon"
             >
               {currentUser ? (
                 <span className="text-white font-medium text-sm">
@@ -1292,7 +1293,7 @@ export default function Home() {
               <button
                 onClick={handleContribute}
                 disabled={!inputText}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed btn-interactive btn-ripple"
               >
                 <Send className="w-4 h-4 ml-0.5" />
               </button>
@@ -1325,7 +1326,7 @@ export default function Home() {
                 <div className="relative">
                   <button
                     onClick={() => setShowLangMenu(!showLangMenu)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors btn-interactive"
                   >
                     <Globe className="w-4 h-4" />
                     <span>{t.languageNames[language]}</span>
@@ -1344,7 +1345,7 @@ export default function Home() {
                             setLanguage(lang);
                             setShowLangMenu(false);
                           }}
-                          className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors btn-interactive ${
                             lang === language
                               ? "text-cyan-400 bg-white/5"
                               : "text-white/70"
@@ -1424,7 +1425,7 @@ export default function Home() {
                     }
                   }, 2000); // 2秒动画时长
                 }}
-                className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors"
+                className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors btn-glow btn-ripple"
               >
                 {t.startButton}
               </button>
