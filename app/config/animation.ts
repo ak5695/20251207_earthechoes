@@ -1,4 +1,10 @@
 import type { AnimationParams } from "../components/ThreeScene";
+import {
+  NEBULA_PARTICLE_COUNT,
+  CAMERA_INIT_POS,
+  CAMERA_TARGET_POS,
+  CAMERA_RESPONSIVE,
+} from "../three/constants";
 
 // 默认动画参数
 export const defaultAnimationParams: AnimationParams = {
@@ -27,7 +33,7 @@ export const defaultAnimationParams: AnimationParams = {
 
   // 星云
   nebulaSpeed: 0.0008,
-  nebulaParticleCount: 500,
+  nebulaParticleCount: NEBULA_PARTICLE_COUNT,
   nebulaScale: 1.0,
   nebulaBrightness: 2.0,
   nebulaParticleOpacity: 1.0,
@@ -38,31 +44,47 @@ export const defaultAnimationParams: AnimationParams = {
   settleBlinkAmplitude: 1,
 
   // 摄像头位置（初始）
-  cameraX: 0,
-  cameraY: 0,
-  cameraZ: 30,
+  cameraX: CAMERA_INIT_POS.x,
+  cameraY: CAMERA_INIT_POS.y,
+  cameraZ: CAMERA_INIT_POS.z,
 
   // 摄像头动画目标位置
-  cameraTargetX: 0,
-  cameraTargetY: 50,
-  cameraTargetZ: 80,
+  cameraTargetX: CAMERA_TARGET_POS.x,
+  cameraTargetY: CAMERA_TARGET_POS.y,
+  cameraTargetZ: CAMERA_TARGET_POS.z,
   cameraPanDuration: 2.0,
 };
 
 // 根据屏幕大小获取摄像机参数
 export const getCameraParamsForScreen = () => {
   if (typeof window === "undefined") {
-    return { cameraZ: 30, cameraTargetZ: 80, cameraTargetY: 50 };
+    return {
+      cameraZ: CAMERA_RESPONSIVE.desktop.z,
+      cameraTargetZ: CAMERA_RESPONSIVE.desktop.targetZ,
+      cameraTargetY: CAMERA_RESPONSIVE.desktop.targetY,
+    };
   }
   const isMobile = window.innerWidth < 768;
   const isSmallMobile = window.innerWidth < 480;
 
   if (isSmallMobile) {
-    return { cameraZ: 50, cameraTargetZ: 130, cameraTargetY: 65 };
+    return {
+      cameraZ: CAMERA_RESPONSIVE.smallMobile.z,
+      cameraTargetZ: CAMERA_RESPONSIVE.smallMobile.targetZ,
+      cameraTargetY: CAMERA_RESPONSIVE.smallMobile.targetY,
+    };
   } else if (isMobile) {
-    return { cameraZ: 42, cameraTargetZ: 110, cameraTargetY: 58 };
+    return {
+      cameraZ: CAMERA_RESPONSIVE.mobile.z,
+      cameraTargetZ: CAMERA_RESPONSIVE.mobile.targetZ,
+      cameraTargetY: CAMERA_RESPONSIVE.mobile.targetY,
+    };
   }
-  return { cameraZ: 30, cameraTargetZ: 80, cameraTargetY: 50 };
+  return {
+    cameraZ: CAMERA_RESPONSIVE.desktop.z,
+    cameraTargetZ: CAMERA_RESPONSIVE.desktop.targetZ,
+    cameraTargetY: CAMERA_RESPONSIVE.desktop.targetY,
+  };
 };
 
 // 心情颜色列表

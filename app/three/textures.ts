@@ -3,6 +3,32 @@ import * as THREE from "three";
 // 缓存纹理避免重复创建
 let glowTexture: THREE.CanvasTexture | null = null;
 let nebulaTexture: THREE.CanvasTexture | null = null;
+let circleTexture: THREE.CanvasTexture | null = null;
+
+/**
+ * 创建实心圆纹理（用于连线节点）
+ */
+export const createSolidCircleTexture = (): THREE.CanvasTexture => {
+  if (circleTexture) return circleTexture;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const context = canvas.getContext("2d");
+
+  if (context) {
+    context.clearRect(0, 0, 64, 64);
+
+    // 绘制实心圆
+    context.beginPath();
+    context.arc(32, 32, 28, 0, Math.PI * 2);
+    context.fillStyle = "rgba(255, 255, 255, 1)";
+    context.fill();
+  }
+
+  circleTexture = new THREE.CanvasTexture(canvas);
+  return circleTexture;
+};
 
 /**
  * 创建发光纹理（用于飞行粒子 - 更亮更实心）
@@ -87,5 +113,9 @@ export const clearTextureCache = (): void => {
   if (nebulaTexture) {
     nebulaTexture.dispose();
     nebulaTexture = null;
+  }
+  if (circleTexture) {
+    circleTexture.dispose();
+    circleTexture = null;
   }
 };

@@ -45,6 +45,7 @@ export default function MoodCard({
                 duration={60}
                 delay={200}
                 showCursor={false}
+                startOnView={false}
                 className="text-xs  text-slate-500 font-medium"
               >
                 {userName}
@@ -54,6 +55,7 @@ export default function MoodCard({
                 duration={60}
                 delay={200}
                 showCursor={false}
+                startOnView={false}
                 className="text-xs text-slate-500 italic"
               >
                 {voiceLabel}
@@ -66,6 +68,7 @@ export default function MoodCard({
               duration={50}
               delay={400}
               showCursor={false}
+              startOnView={false}
               className="text-[10px] text-slate-500"
             >
               {new Date(particle.timestamp).toLocaleDateString()}
@@ -94,6 +97,7 @@ export default function MoodCard({
             showCursor={true}
             blinkCursor={true}
             cursorStyle="line"
+            startOnView={false}
             className="text-white"
           >
             {particle.text}

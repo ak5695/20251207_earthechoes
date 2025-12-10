@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查环境变量
+    /*
     if (!process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json(
         { error: "DEEPSEEK_API_KEY is not configured" },
@@ -98,12 +99,19 @@ export async function POST(request: NextRequest) {
       });
     } catch (ttsError) {
       console.error("TTS Error:", ttsError);
-      // TTS 失败时降级返回纯文本
+      // 如果 TTS 失败，至少返回文本
       return NextResponse.json({
         text: generatedText,
-        error: "TTS failed, text only",
+        audioBase64: null,
       });
     }
+    */
+
+    // AI 功能暂停中
+    return NextResponse.json({
+      text: "星光暂时沉睡，静待唤醒。",
+      audioBase64: null,
+    });
   } catch (error) {
     console.error("Cosmic Echo API Error:", error);
 

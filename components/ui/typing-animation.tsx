@@ -65,6 +65,13 @@ export function TypingAnimation({
   const shouldStart = startOnView ? isInView : true;
 
   useEffect(() => {
+    setDisplayedText("");
+    setCurrentWordIndex(0);
+    setCurrentCharIndex(0);
+    setPhase("typing");
+  }, [children, words]);
+
+  useEffect(() => {
     if (!shouldStart || wordsToAnimate.length === 0) return;
 
     const timeoutDelay =

@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "append_css",
+			"type": "shell",
+			"command": "cat >> app/globals.css",
+			"args": [
+				"app/globals.css",
+				"\n@keyframes draw-line {\n  from {\n    stroke-dashoffset: 1000;\n  }\n  to {\n    stroke-dashoffset: 0;\n  }\n}\n\n.animate-draw-line {\n  stroke-dasharray: 1000;\n  stroke-dashoffset: 1000;\n  animation: draw-line 1s ease-out forwards;\n}\n"
+			],
+			"group": "edit"
+		}
+	]
+}

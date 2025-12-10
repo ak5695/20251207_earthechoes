@@ -74,6 +74,8 @@ export interface ThreeSceneHandle {
   getRandomNebulaParticle: () => ContributedParticle | null;
   getHighlightedParticleScreenPosition: () => { x: number; y: number } | null;
   isShapeTransitioning: () => boolean;
+  pauseNebulaTimer?: () => void;
+  resumeNebulaTimer?: () => void;
 }
 
 // === 组件 Props ===
@@ -134,7 +136,7 @@ export interface StoredParticle {
 }
 
 // === 形态模式 ===
-export type ShapeMode = "nebula" | "river" | "wave";
+export type ShapeMode = "nebula" | "river" | "wave" | "atomic";
 
 // === 摄像头动画状态 ===
 export interface CameraAnimationState {
@@ -146,7 +148,6 @@ export interface CameraAnimationState {
   onComplete?: () => void;
 }
 
-// === 形态切换摄像头状态 ===
 export interface ShapeTransitionCameraState {
   phase: "idle" | "zooming-out" | "pausing" | "expanding" | "zooming-in";
   originalCameraPos: THREE.Vector3 | null;

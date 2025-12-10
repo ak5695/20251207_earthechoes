@@ -57,6 +57,10 @@ export default function Home() {
   const [floatAmplitude, setFloatAmplitude] = useState(0.3);
   const [language, setLanguage] = useState<Language>("zh");
 
+  // === 发射消息状态 ===
+  const [showLaunchMessage, setShowLaunchMessage] = useState(false);
+  const [isLaunchMessageClosing, setIsLaunchMessageClosing] = useState(false);
+
   // === 欢迎弹窗状态 ===
   const [showWelcome, setShowWelcome] = useState(true);
   const [isWelcomeClosing, setIsWelcomeClosing] = useState(false);
@@ -299,15 +303,22 @@ export default function Home() {
 
     const fadeOutDuration = 2;
     const waitDuration = 2;
+    let activeTimeout: NodeJS.Timeout | null = null;
 
-    let fadeOutTimer: NodeJS.Timeout | null = null;
-    let hideTimer: NodeJS.Timeout | null = null;
+    const scheduleNext = (delay: number) => {
+      activeTimeout = setTimeout(runLoop, delay);
+    };
 
-    const showNextCard = async () => {
-      if (selectedParticle) return;
-      if (Date.now() < carouselPausedUntil) return;
-      if (isCarouselHovered) return;
-      if (threeSceneRef.current?.isShapeTransitioning?.()) return;
+    const runLoop = () => {
+      if (
+        selectedParticle ||
+        Date.now() < carouselPausedUntil ||
+        isCarouselHovered ||
+        threeSceneRef.current?.isShapeTransitioning?.()
+      ) {
+        scheduleNext(1000);
+        return;
+      }
 
       if (threeSceneRef.current) {
         const particle = threeSceneRef.current.getRandomNebulaParticle();
@@ -316,41 +327,37 @@ export default function Home() {
           setIsCarouselVisible(true);
           setIsCarouselFading(false);
 
-          fadeOutTimer = setTimeout(() => {
-            if (isCarouselHovered) return;
+          // 动态计算显示时间：基础2秒 + 每字0.2秒，上限12秒
+          // 这样既能保证短文本有足够阅读时间，长文本也不会显示太久
+          const textLen = particle.text ? particle.text.length : 0;
+          const displayDuration = Math.max(3, Math.min(12, 2 + textLen * 0.2));
+
+          activeTimeout = setTimeout(() => {
+            if (isCarouselHovered) {
+              scheduleNext(1000);
+              return;
+            }
             setIsCarouselFading(true);
-            hideTimer = setTimeout(() => {
+            activeTimeout = setTimeout(() => {
               setIsCarouselVisible(false);
               setIsCarouselFading(false);
+              scheduleNext(waitDuration * 1000);
             }, fadeOutDuration * 1000);
-          }, carouselDisplayTime * 1000);
+          }, displayDuration * 1000);
+        } else {
+          scheduleNext(1000);
         }
+      } else {
+        scheduleNext(1000);
       }
     };
 
-    const initialDelay = setTimeout(() => {
-      showNextCard();
-      carouselTimerRef.current = setInterval(
-        showNextCard,
-        (carouselDisplayTime + fadeOutDuration + waitDuration) * 1000
-      );
-    }, waitDuration * 1000);
+    scheduleNext(waitDuration * 1000);
 
     return () => {
-      clearTimeout(initialDelay);
-      if (fadeOutTimer) clearTimeout(fadeOutTimer);
-      if (hideTimer) clearTimeout(hideTimer);
-      if (carouselTimerRef.current) {
-        clearInterval(carouselTimerRef.current);
-      }
+      if (activeTimeout) clearTimeout(activeTimeout);
     };
-  }, [
-    isClient,
-    carouselDisplayTime,
-    carouselPausedUntil,
-    selectedParticle,
-    isCarouselHovered,
-  ]);
+  }, [isClient, carouselPausedUntil, selectedParticle, isCarouselHovered]);
 
   // 当前显示的粒子信息
   const currentParticleText = useMemo(() => {
@@ -524,6 +531,22 @@ export default function Home() {
     }
 
     // 动画流程
+    // 暂停星云形态切换（仅暂停形态切换，保留旋转/呼吸等视觉效果）
+    const tryPauseNebula = async () => {
+      const start = Date.now();
+      while (Date.now() - start < 2000) {
+        if (threeSceneRef.current?.pauseNebulaTimer) {
+          console.log("[page] calling pauseNebulaTimer() before condensing");
+          threeSceneRef.current.pauseNebulaTimer();
+          return true;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      console.warn("[page] pauseNebulaTimer() not available after 2s");
+      return false;
+    };
+    void tryPauseNebula();
+
     setContributionState("condensing");
     setInputText("");
 
@@ -543,6 +566,24 @@ export default function Home() {
       setTimeout(() => {
         if (inputContainerRef.current && threeSceneRef.current) {
           const rect = inputContainerRef.current.getBoundingClientRect();
+          // Defensive: ensure nebula shape switching is paused immediately before spawning projectile
+          if (threeSceneRef.current.pauseNebulaTimer) {
+            console.log(
+              "[page] defensive call to pauseNebulaTimer() immediately before spawnProjectile"
+            );
+            threeSceneRef.current.pauseNebulaTimer();
+          }
+          // 显示发射消息
+          setShowLaunchMessage(true);
+          setIsLaunchMessageClosing(false);
+          setTimeout(() => {
+            setIsLaunchMessageClosing(true);
+            setTimeout(() => {
+              setShowLaunchMessage(false);
+              setIsLaunchMessageClosing(false);
+            }, 2000);
+          }, 17500); // 17秒 - 2秒 = 15秒后开始退出动画
+
           threeSceneRef.current.spawnProjectile(
             rect,
             moodColor,
@@ -559,6 +600,7 @@ export default function Home() {
               await cosmicEchoPromise;
 
               // 播放语音：优先 OpenAI TTS，降级到 Web Speech API
+              /*
               if (cosmicEchoText) {
                 if (cosmicEchoAudio) {
                   // 使用 OpenAI TTS 音频（带混响效果）
@@ -567,6 +609,15 @@ export default function Home() {
                   // 降级：使用浏览器 TTS
                   await speakText(cosmicEchoText);
                 }
+              }
+              */
+
+              // 明确恢复星云形态计时（防止某些路径未触发 resume）
+              if (threeSceneRef.current?.resumeNebulaTimer) {
+                console.log(
+                  "[page] calling resumeNebulaTimer() after spawn complete/audio done"
+                );
+                threeSceneRef.current.resumeNebulaTimer();
               }
             }
           );
@@ -698,6 +749,7 @@ export default function Home() {
             </linearGradient>
           </defs>
           <line
+            key={(selectedParticle || carouselParticle)?.id}
             x1={particleLinePos.x}
             y1={particleLinePos.y}
             x2={
@@ -710,7 +762,7 @@ export default function Home() {
             }
             stroke="url(#lineGradient)"
             strokeWidth="2"
-            className="animate-pulse"
+            className="animate-draw-line"
           />
           <circle
             cx={particleLinePos.x}
@@ -774,6 +826,7 @@ export default function Home() {
                 }}
               >
                 <MoodCard
+                  key={(selectedParticle || carouselParticle)?.id}
                   particle={(selectedParticle || carouselParticle)!}
                   isClosable={!!selectedParticle}
                   onClose={handleCloseCard}
@@ -790,17 +843,38 @@ export default function Home() {
         </div>
 
         {/* Bottom Input Area */}
-        <InputArea
-          ref={inputContainerRef}
-          inputText={inputText}
-          contributionState={contributionState}
-          placeholder={t.inputPlaceholder}
-          floatAmplitude={floatAmplitude}
-          collapseDuration={paramsRef.current.collapseDuration}
-          onInputChange={setInputText}
-          onSubmit={handleContribute}
-          inputRef={inputRef}
-        />
+        <div className="flex flex-col items-center">
+          {/* 发射消息 */}
+          {showLaunchMessage && (
+            <div className="absolute bottom-[5rem] left-1/2 -translate-x-1/2 w-80 md:w-96 mx-auto animate-space-float-slow">
+              <div
+                className={`pointer-events-auto ${
+                  isLaunchMessageClosing
+                    ? "animate-card-exit"
+                    : "animate-card-enter"
+                }`}
+              >
+                <div className="text-center">
+                  <span className="text-base md:text-lg font-bold tracking-wider text-white/60">
+                    去吧,去寻找属于你的位置.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <InputArea
+            ref={inputContainerRef}
+            inputText={inputText}
+            contributionState={contributionState}
+            placeholder={t.inputPlaceholder}
+            floatAmplitude={floatAmplitude}
+            collapseDuration={paramsRef.current.collapseDuration}
+            onInputChange={setInputText}
+            onSubmit={handleContribute}
+            inputRef={inputRef}
+          />
+        </div>
       </div>
 
       {/* 欢迎弹窗 */}

@@ -11,6 +11,9 @@ import {
 import * as THREE from "three";
 import { supabase, Post } from "@/lib/supabase";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { Line2 } from "three/examples/jsm/lines/Line2.js";
+import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
 // 从拆分的模块导入
 import {
@@ -23,6 +26,11 @@ import {
   CameraAnimationState,
   ShapeTransitionCameraState,
 } from "../three/types";
+import {
+  createMeteor,
+  updateMeteors,
+  METEOR_CONFIG,
+} from "../three/meteorSystem";
 
 import {
   loadParticlesFromStorage,
@@ -30,25 +38,48 @@ import {
 } from "../three/storage";
 
 import { createTaperedTrailGeometry } from "../three/geometry";
-import { generateNebulaShape, generateRiverShape, generateWaveShape } from "../three/shapes";
-import { createGlowTexture, createNebulaTexture } from "../three/textures";
+import {
+  generateNebulaShape,
+  generateRiverShape,
+  generateWaveShape,
+  generateFloatShape,
+  generateAtomicShape,
+} from "../three/shapes";
+import {
+  generateAtomicOrbits,
+  updateAtomicPositions,
+  calculateAtomicConnections,
+  initFixedAtomicPairs,
+  resetFixedAtomicPairs,
+  AtomicOrbit,
+  calculateOrbitPosition,
+} from "../three/atomicSystem";
+import {
+  createGlowTexture,
+  createNebulaTexture,
+  createSolidCircleTexture,
+} from "../three/textures";
 import {
   easeInOutCubic,
   generateNebulaPosition,
   generateWanderCurves,
 } from "../three/math";
+import { calculateParticleTargetPosition } from "../three/shapeUtils";
 import {
   SHAPE_DURATION,
   SHAPE_TRANSITION_DURATION,
   SHAPE_PAUSE_DURATION,
   SHAPE_EXPAND_DURATION,
   CAMERA_ZOOM_DURATION,
+  NEBULA_PARTICLE_COUNT,
   NEBULA_COLOR_PALETTE,
   CLICK_RADIUS,
   RAYCASTER_THRESHOLD,
   MAX_LINE_DISTANCE,
   MAX_LINES,
   MAX_CONNECTIONS_PER_PARTICLE,
+  FLOAT_MIN_SPEED,
+  FLOAT_MAX_SPEED,
 } from "../three/constants";
 
 // 重新导出类型供外部使用
@@ -69,6 +100,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const sceneRef = useRef<THREE.Scene | null>(null);
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+    const clockRef = useRef<THREE.Clock | null>(null);
     const controlsRef = useRef<OrbitControls | null>(null);
     const nebulaRef = useRef<THREE.Points | null>(null);
     const projectilesRef = useRef<Projectile[]>([]);
@@ -85,27 +117,88 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     const onReadyRef = useRef(onReady);
     const settledMeshesRef = useRef<THREE.Mesh[]>([]);
     const highlightedParticleIdRef = useRef<string | null>(null);
+    const lastHighlightedIdRef = useRef<string | null>(null);
     const highlightSpriteRef = useRef<THREE.Sprite | null>(null);
     const nebulaParticleDataRef = useRef<ContributedParticle[]>([]);
     const nebulaPausedUntilRef = useRef<number>(0);
+    // 单独控制“形态切换”暂停标志（仅影响 shapeTimer）
+    const shapeSwitchPausedRef = useRef<boolean>(false);
+
+    // 暂停 / 恢复 星云动画计时（由外部调用或内部逻辑触发）
+    const pauseNebulaTimer = useCallback(() => {
+      nebulaPausedUntilRef.current = Infinity;
+      shapeSwitchPausedRef.current = true;
+      console.log(
+        "[ThreeScene] pauseNebulaTimer() called — shape switching paused"
+      );
+    }, []);
+    const resumeNebulaTimer = useCallback(() => {
+      nebulaPausedUntilRef.current = Date.now();
+      shapeSwitchPausedRef.current = false;
+      console.log(
+        "[ThreeScene] resumeNebulaTimer() called — shape switching resumed"
+      );
+    }, []);
     const carouselIndexRef = useRef<number>(0);
     const highlightFadeRef = useRef<number>(0);
     const highlightTargetRef = useRef<number>(0);
-    const particleLinesRef = useRef<THREE.LineSegments | null>(null);
+    const particleLinesRef = useRef<Line2[]>([]);
 
     // 数据库心情数据
     const [databasePosts, setDatabasePosts] = useState<Post[]>([]);
     const databasePostsRef = useRef<Post[]>([]);
 
     // 形态变换系统
-    const shapeModeRef = useRef<ShapeMode>("nebula");
+    const shapeModeRef = useRef<ShapeMode>("atomic");
     const shapeTransitionRef = useRef<number>(0);
-    const shapeTransitionTargetRef = useRef<ShapeMode>("nebula");
+    const shapeTransitionTargetRef = useRef<ShapeMode>("atomic");
+    // 存储形态切换的目标位置，避免每帧重新生成导致抖动
+    const targetShapePositionsRef = useRef<Float32Array | null>(null);
+
+    // 存储新粒子的过渡状态
+    const settledParticlesOriginalPositionsRef = useRef<
+      Map<string, THREE.Vector3>
+    >(new Map());
+    const settledParticlesTargetPositionsRef = useRef<
+      Map<string, THREE.Vector3>
+    >(new Map());
+    const settledParticlesOrbitsRef = useRef<Map<string, AtomicOrbit>>(
+      new Map()
+    );
     const originalPositionsRef = useRef<Float32Array | null>(null);
     const targetPositionsRef = useRef<Float32Array | null>(null);
     const shapeTimerRef = useRef<number>(0);
     const shapeExpandProgressRef = useRef<number>(0);
     const shapePauseTimerRef = useRef<number>(0);
+
+    // 过渡完成后稳定期，避免立即应用动态效果导致抖动
+    const shapeStabilizationTimerRef = useRef<number>(0);
+
+    // 行星系统轨道参数
+    const planetaryOrbitsRef = useRef<Array<{
+      a: number; // 长轴
+      b: number; // 短轴
+      speed: number; // 角速度
+      angle: number; // 当前角度
+      yOffset: number; // Y轴偏移
+    }> | null>(null);
+
+    // 漂浮粒子参数
+    const floatParticlesRef = useRef<Array<{
+      velocity: THREE.Vector3;
+      position: THREE.Vector3;
+    }> | null>(null);
+
+    // 原子轨道参数
+    const atomicOrbitsRef = useRef<AtomicOrbit[] | null>(null);
+    const targetAtomicOrbitsRef = useRef<AtomicOrbit[] | null>(null);
+
+    // 流星系统
+    const meteorsRef = useRef<THREE.Mesh[]>([]);
+    const lastMeteorTimeRef = useRef<number>(0);
+
+    // 拖拽检测，避免点击时暂停
+    const dragStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
     // 形态切换时的摄像头动画状态
     const shapeTransitionCameraStateRef = useRef<ShapeTransitionCameraState>({
@@ -130,7 +223,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             .from("posts")
             .select("*")
             .eq("language", language)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .limit(NEBULA_PARTICLE_COUNT);
 
           if (error) {
             console.error("加载心情数据失败:", error);
@@ -173,7 +267,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
 
     // 缓存曲线生成函数
     const createWanderCurves = useCallback(
-      (startPos: THREE.Vector3) => generateWanderCurves(startPos, paramsRef.current),
+      (startPos: THREE.Vector3) =>
+        generateWanderCurves(startPos, paramsRef.current),
       []
     );
 
@@ -271,8 +366,9 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         if (!highlightedParticleIdRef.current) return null;
         if (highlightFadeRef.current < 0.5) return null;
 
-        const cameraPhase = shapeTransitionCameraStateRef.current.phase;
-        if (cameraPhase !== "idle") return null;
+        // 移除对 cameraPhase 的检查，允许在形态切换和摄像头移动时显示连线
+        // const cameraPhase = shapeTransitionCameraStateRef.current.phase;
+        // if (cameraPhase !== "idle") return null;
 
         const sprite = highlightSpriteRef.current;
         if (!sprite.visible) return null;
@@ -287,7 +383,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       },
 
       isShapeTransitioning: () => {
-        return shapeTransitionCameraStateRef.current.phase !== "idle";
+        return shapeTransitionTargetRef.current !== shapeModeRef.current;
       },
 
       spawnProjectile: (
@@ -377,7 +473,44 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           curves: wanderCurves,
           speedMultipliers: wanderSpeedMultipliers,
         } = createWanderCurves(startPos);
-        const targetPos = generateNebulaPosition();
+
+        // Calculate target position based on current shape mode to avoid jumping
+        const virtualIndex =
+          NEBULA_PARTICLE_COUNT +
+          settledParticlesRef.current.length +
+          projectilesRef.current.length;
+        const totalCount = virtualIndex + 1;
+        const elapsedTime = clockRef.current
+          ? clockRef.current.getElapsedTime()
+          : 0;
+
+        const { position: localTargetPos, orbit } =
+          calculateParticleTargetPosition(
+            shapeModeRef.current,
+            virtualIndex,
+            totalCount,
+            elapsedTime
+          );
+
+        // 关键修复：将局部坐标转换为世界坐标，考虑星云当前的旋转
+        const targetPos = localTargetPos.clone();
+        if (nebulaRef.current) {
+          nebulaRef.current.updateMatrixWorld();
+          targetPos.applyMatrix4(nebulaRef.current.matrixWorld);
+        }
+
+        console.log(`[Spawn] Particle ${id} target calculated:`, {
+          mode: shapeModeRef.current,
+          virtualIndex,
+          localPos: localTargetPos.clone(),
+          worldPos: targetPos.clone(),
+          orbit: orbit ? "Created" : "None",
+        });
+
+        // 如果生成了轨道数据（原子模式），立即保存，确保后续动画一致
+        if (orbit) {
+          settledParticlesOrbitsRef.current.set(id, orbit);
+        }
 
         projectilesRef.current.push({
           id,
@@ -401,6 +534,9 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           timestamp: Date.now(),
         });
       },
+
+      pauseNebulaTimer,
+      resumeNebulaTimer,
     }));
 
     useEffect(() => {
@@ -449,7 +585,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       controlsRef.current = controls;
 
       // 创建星云
-      const particleCount = initialParams.nebulaParticleCount;
+      const particleCount = NEBULA_PARTICLE_COUNT;
       const geometry = new THREE.BufferGeometry();
       const positions = new Float32Array(particleCount * 3);
       const colors = new Float32Array(particleCount * 3);
@@ -493,8 +629,25 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       });
 
       const nebula = new THREE.Points(geometry, nebulaMaterial);
+      nebula.renderOrder = 10; // 确保粒子在连线之上渲染
       scene.add(nebula);
       nebulaRef.current = nebula;
+
+      // 如果初始模式是 atomic，初始化轨道和固定连线对
+      if (shapeModeRef.current === "atomic") {
+        atomicOrbitsRef.current = generateAtomicOrbits(particleCount);
+        initFixedAtomicPairs(particleCount); // 初始化固定的粒子对
+
+        // 使用生成的轨道计算初始位置，确保一致性
+        const orbits = atomicOrbitsRef.current;
+        for (let i = 0; i < particleCount; i++) {
+          const pos = calculateOrbitPosition(orbits[i]);
+          positions[i * 3] = pos.x;
+          positions[i * 3 + 1] = pos.y;
+          positions[i * 3 + 2] = pos.z;
+        }
+        geometry.attributes.position.needsUpdate = true;
+      }
 
       // 为星云粒子创建心情数据
       const dbPosts = databasePostsRef.current;
@@ -532,76 +685,14 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       }
       nebulaParticleDataRef.current = nebulaParticleData;
 
-      // 从 LocalStorage 加载已保存的用户粒子
+      // 移除从 LocalStorage 加载本地粒子的逻辑，以确保只显示数据库中的100个粒子
+      // 且所有粒子都能参与形态切换动画
+      /*
       const savedParticles = loadParticlesFromStorage();
       if (savedParticles.length > 0) {
-        console.log(`加载了 ${savedParticles.length} 个已保存的心情粒子`);
-
-        savedParticles.forEach((stored) => {
-          const pos = new THREE.Vector3(
-            stored.position.x,
-            stored.position.y,
-            stored.position.z
-          );
-          const color = new THREE.Color(stored.color);
-
-          const meshGeometry = new THREE.SphereGeometry(
-            paramsRef.current.particleSize * 0.3,
-            16,
-            16
-          );
-          const meshMaterial = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0,
-          });
-          const mesh = new THREE.Mesh(meshGeometry, meshMaterial);
-          mesh.position.copy(pos);
-          mesh.scale.setScalar(0.5);
-          mesh.userData = {
-            type: "settledParticle",
-            particleId: stored.id,
-          };
-          scene.add(mesh);
-
-          const spriteMat = new THREE.SpriteMaterial({
-            map: getNebulaTexture(),
-            color: color,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            opacity: paramsRef.current.nebulaParticleOpacity,
-            depthWrite: false,
-            depthTest: false,
-          });
-          const sprite = new THREE.Sprite(spriteMat);
-          sprite.scale.set(2.5, 2.5, 1);
-          sprite.position.copy(pos);
-          sprite.userData = {
-            type: "settledParticle",
-            particleId: stored.id,
-          };
-          scene.add(sprite);
-
-          settledParticlesRef.current.push({
-            id: stored.id,
-            text: stored.text,
-            color: stored.color,
-            timestamp: stored.timestamp,
-            position: pos,
-            mesh: mesh,
-          });
-
-          nebulaParticleDataRef.current.push({
-            id: stored.id,
-            text: stored.text,
-            color: stored.color,
-            timestamp: stored.timestamp,
-            position: pos,
-          });
-
-          settledMeshesRef.current.push(mesh);
-        });
+         ... (removed code)
       }
+      */
 
       // 创建高亮光环精灵
       const highlightSpriteMat = new THREE.SpriteMaterial({
@@ -639,28 +730,8 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       const starField = new THREE.Points(starsGeo, starsMat);
       scene.add(starField);
 
-      // 粒子连线系统
-      const lineGeometry = new THREE.BufferGeometry();
-      const linePositions = new Float32Array(200 * 3);
-      lineGeometry.setAttribute(
-        "position",
-        new THREE.BufferAttribute(linePositions, 3)
-      );
-      lineGeometry.setDrawRange(0, 0);
-
-      const lineMaterial = new THREE.LineDashedMaterial({
-        color: 0x6366f1,
-        linewidth: 2,
-        dashSize: 3,
-        gapSize: 2,
-        transparent: true,
-        opacity: 0.3,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      const particleLines = new THREE.LineSegments(lineGeometry, lineMaterial);
-      scene.add(particleLines);
-      particleLinesRef.current = particleLines;
+      // 粒子连线系统 - 使用Line2数组
+      particleLinesRef.current = [];
 
       // 点击事件处理
       const handleClick = (event: MouseEvent) => {
@@ -672,29 +743,50 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
         raycasterRef.current.params.Points.threshold = RAYCASTER_THRESHOLD;
 
+        console.log(
+          `[Click] Checking ${settledMeshesRef.current.length} settled meshes`
+        );
+
         // 检测已定居的粒子 mesh
         if (settledMeshesRef.current.length > 0) {
-          let closestParticle: ContributedParticle | null = null;
-          let closestDistance = Infinity;
+          // 使用 intersectObjects 一次性检测所有 mesh，比手动遍历更准确
+          const intersects = raycasterRef.current.intersectObjects(
+            settledMeshesRef.current,
+            true
+          );
 
-          for (let i = 0; i < settledParticlesRef.current.length; i++) {
-            const particle = settledParticlesRef.current[i];
-            const mesh = settledMeshesRef.current[i];
-            if (mesh) {
-              const worldPos = new THREE.Vector3();
-              mesh.getWorldPosition(worldPos);
-              const distance =
-                raycasterRef.current.ray.distanceToPoint(worldPos);
-              if (distance < CLICK_RADIUS && distance < closestDistance) {
-                closestDistance = distance;
-                closestParticle = particle;
+          console.log(
+            `[Click] Raycaster found ${intersects.length} intersections`
+          );
+
+          if (intersects.length > 0) {
+            // 找到最近的那个
+            const hit = intersects[0];
+            console.log(`[Click] Hit object:`, {
+              type: hit.object.type,
+              userData: hit.object.userData,
+              distance: hit.distance,
+              point: hit.point,
+            });
+
+            // 查找对应的粒子数据
+            // 注意：hit.object 可能是 mesh 本身，也可能是它的子对象（如 sprite）
+            // 我们需要向上查找直到找到带有 particleId 的对象
+            let target: THREE.Object3D | null = hit.object;
+            while (target && !target.userData.particleId && target.parent) {
+              target = target.parent;
+            }
+
+            if (target && target.userData.particleId) {
+              const particleId = target.userData.particleId;
+              const particle = settledParticlesRef.current.find(
+                (p) => p.id === particleId
+              );
+              if (particle) {
+                onParticleClickRef.current?.(particle);
+                return;
               }
             }
-          }
-
-          if (closestParticle) {
-            onParticleClickRef.current?.(closestParticle);
-            return;
           }
         }
 
@@ -717,7 +809,14 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             intersect.distanceToRay !== undefined
           ) {
             if (intersect.distanceToRay < CLICK_RADIUS) {
-              const localPos = currentParticleData[index].position.clone();
+              // 获取当前粒子的实时位置（因为形态切换会改变位置）
+              const positions = nebulaRef.current.geometry.attributes.position
+                .array as Float32Array;
+              const localPos = new THREE.Vector3(
+                positions[index * 3],
+                positions[index * 3 + 1],
+                positions[index * 3 + 2]
+              );
               const worldPos = localPos.applyMatrix4(
                 nebulaRef.current.matrixWorld
               );
@@ -735,18 +834,50 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
       renderer.domElement.addEventListener("click", handleClick);
 
       // 拖动星云时暂停旋转
-      const handleDragStart = () => {
-        nebulaPausedUntilRef.current = Infinity;
+      const handleDragStart = (event: any) => {
+        // 记录拖拽开始时的鼠标位置
+        dragStartPosRef.current = { x: event.clientX, y: event.clientY };
       };
-      const handleDragEnd = () => {
-        nebulaPausedUntilRef.current = Date.now() + 3000;
+      const handleDragEnd = (event: any) => {
+        // 检查是否实际移动了鼠标（避免点击时暂停）
+        if (dragStartPosRef.current) {
+          const dx = event.clientX - dragStartPosRef.current.x;
+          const dy = event.clientY - dragStartPosRef.current.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // 如果移动距离大于阈值，则认为是拖拽
+          if (distance > 5) {
+            // 只有在真正拖拽时才设置短暂暂停
+            if (nebulaPausedUntilRef.current !== Infinity) {
+              nebulaPausedUntilRef.current = Date.now() + 3000;
+            }
+          }
+        }
+        dragStartPosRef.current = null;
       };
+
+      // 鼠标移动时检查是否为拖拽
+      const handleMouseMove = (event: MouseEvent) => {
+        if (dragStartPosRef.current) {
+          const dx = event.clientX - dragStartPosRef.current.x;
+          const dy = event.clientY - dragStartPosRef.current.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          // 如果移动距离大于阈值，开始暂停
+          if (distance > 5 && nebulaPausedUntilRef.current !== Infinity) {
+            nebulaPausedUntilRef.current = Infinity;
+          }
+        }
+      };
+
       controls.addEventListener("start", handleDragStart);
       controls.addEventListener("end", handleDragEnd);
+      window.addEventListener("mousemove", handleMouseMove);
 
       // 动画循环
       let animationId: number;
       const clock = new THREE.Clock();
+      clockRef.current = clock;
 
       const animate = () => {
         animationId = requestAnimationFrame(animate);
@@ -772,69 +903,226 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           }
         }
 
-        // 旋转星云并应用缩放
+        // 旋转星云并应用缩放（始终运行，即便形态切换被暂停）
         if (nebulaRef.current) {
-          const isNebulaPaused = Date.now() < nebulaPausedUntilRef.current;
-          if (!isNebulaPaused) {
-            nebulaRef.current.rotation.y += paramsRef.current.nebulaSpeed;
-          }
+          const rotationDelta = paramsRef.current.nebulaSpeed;
+          nebulaRef.current.rotation.y += rotationDelta;
           const scale = paramsRef.current.nebulaScale;
           nebulaRef.current.scale.set(scale, scale, scale);
 
-          // 形态变换系统
-          shapeTimerRef.current += delta;
+          // 同步旋转新粒子（它们在 scene 中，需要手动同步旋转）
+          if (rotationDelta !== 0 && shapeModeRef.current !== "atomic") {
+            const rotationAxis = new THREE.Vector3(0, 1, 0);
+            // 旋转已定居的粒子
+            settledParticlesRef.current.forEach((p) => {
+              if (p.mesh && p.mesh.parent === scene) {
+                p.mesh.position.applyAxisAngle(rotationAxis, rotationDelta);
+              }
+            });
+            // 旋转正在 settling 的粒子
+            projectilesRef.current.forEach((p) => {
+              if (p.phase === "settling" && p.mesh && p.mesh.parent === scene) {
+                p.mesh.position.applyAxisAngle(rotationAxis, rotationDelta);
+                // 同步更新 targetPos 以保持一致性
+                if (p.targetPos) {
+                  p.targetPos.applyAxisAngle(rotationAxis, rotationDelta);
+                }
+              }
+            });
+          }
+
+          // 形态变换系统 - 仅在未暂停形态切换时推进计时
+          const isShapePaused =
+            shapeSwitchPausedRef.current ||
+            nebulaPausedUntilRef.current === Infinity ||
+            Date.now() < nebulaPausedUntilRef.current;
+          if (!isShapePaused) {
+            shapeTimerRef.current += delta;
+            // debug
+            if (
+              Math.floor(shapeTimerRef.current) !==
+              Math.floor(shapeTimerRef.current - delta)
+            ) {
+              console.log(
+                `[ThreeScene] shapeTimer: ${shapeTimerRef.current.toFixed(2)}s`
+              );
+            }
+          } else {
+            // debug
+            console.log(
+              `[ThreeScene] shapeTimer paused at ${shapeTimerRef.current.toFixed(
+                2
+              )}s`
+            );
+          }
+          // 更新稳定期计时器
+          if (shapeStabilizationTimerRef.current > 0) {
+            shapeStabilizationTimerRef.current -= delta;
+          }
+
           const cameraState = shapeTransitionCameraStateRef.current;
 
           // 检查是否需要开始形态过渡
           if (
-            shapeTimerRef.current >= SHAPE_DURATION - CAMERA_ZOOM_DURATION &&
-            cameraState.phase === "idle"
+            !shapeSwitchPausedRef.current &&
+            shapeTimerRef.current >= SHAPE_DURATION &&
+            shapeTransitionTargetRef.current === shapeModeRef.current
           ) {
-            cameraState.phase = "zooming-out";
-            cameraState.originalCameraPos = new THREE.Vector3(
-              paramsRef.current.cameraX,
-              paramsRef.current.cameraY,
-              paramsRef.current.cameraZ
-            );
-
-            const targetX = paramsRef.current.cameraTargetX;
-            const targetY = paramsRef.current.cameraTargetY;
-            const targetZ = paramsRef.current.cameraTargetZ;
-
-            cameraAnimationRef.current = {
-              isAnimating: true,
-              startPos: camera.position.clone(),
-              targetPos: new THREE.Vector3(targetX, targetY, targetZ),
-              progress: 0,
-              duration: CAMERA_ZOOM_DURATION,
-              onComplete: () => {},
-            };
+            console.log("[ThreeScene] Triggering shape transition", {
+              shapeTimer: shapeTimerRef.current.toFixed(2),
+              threshold: SHAPE_DURATION,
+            });
 
             shapeTimerRef.current = 0;
-            const shapes: ShapeMode[] = ["nebula", "river", "wave"];
+            const shapes: ShapeMode[] = ["nebula", "river", "wave", "atomic"];
             const currentIndex = shapes.indexOf(shapeModeRef.current);
             const nextIndex = (currentIndex + 1) % shapes.length;
             shapeTransitionTargetRef.current = shapes[nextIndex];
+            shapeTransitionRef.current = 0;
+
+            // 关键修复：在过渡开始前，捕获当前粒子的实际位置作为起点
+            // 这样可以避免从动态位置（如河流流动中）突然跳变回初始静态位置
+            if (nebulaRef.current) {
+              const currentPositions = nebulaRef.current.geometry.attributes
+                .position.array as Float32Array;
+              originalPositionsRef.current = new Float32Array(currentPositions);
+            }
+
+            // 捕获新粒子的当前位置作为起点
+            settledParticlesOriginalPositionsRef.current.clear();
+            settledParticlesTargetPositionsRef.current.clear();
+            settledParticlesRef.current.forEach((p, i) => {
+              if (p.mesh) {
+                settledParticlesOriginalPositionsRef.current.set(
+                  p.id,
+                  p.mesh.position.clone()
+                );
+
+                // 计算新粒子的目标位置
+                const virtualIndex = NEBULA_PARTICLE_COUNT + i;
+                const { position: targetPos, orbit } =
+                  calculateParticleTargetPosition(
+                    shapeTransitionTargetRef.current,
+                    virtualIndex,
+                    NEBULA_PARTICLE_COUNT + settledParticlesRef.current.length,
+                    0, // 时间在过渡期间不重要，因为我们只计算一次静态目标
+                    settledParticlesOrbitsRef.current.get(p.id)
+                  );
+
+                settledParticlesTargetPositionsRef.current.set(p.id, targetPos);
+                if (orbit) {
+                  settledParticlesOrbitsRef.current.set(p.id, orbit);
+                }
+              }
+            });
+
+            // 预先生成目标形态的位置并缓存，避免在过渡期间每帧重新生成导致抖动
+            const elapsedTime = clock.elapsedTime;
+            let targetPositions: Float32Array;
+            switch (shapeTransitionTargetRef.current) {
+              case "nebula":
+                targetPositions = generateNebulaShape(particleCount);
+                break;
+              case "river":
+                targetPositions = generateRiverShape(particleCount);
+                break;
+              case "wave":
+                // 对于波浪，我们生成一个静态快照作为目标
+                targetPositions = generateWaveShape(
+                  particleCount,
+                  elapsedTime + SHAPE_TRANSITION_DURATION
+                );
+                break;
+              case "atomic":
+                // 生成并缓存轨道，确保过渡后的一致性
+                const orbits = generateAtomicOrbits(particleCount);
+                targetAtomicOrbitsRef.current = orbits;
+
+                targetPositions = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount; i++) {
+                  const pos = calculateOrbitPosition(orbits[i]);
+                  targetPositions[i * 3] = pos.x;
+                  targetPositions[i * 3 + 1] = pos.y;
+                  targetPositions[i * 3 + 2] = pos.z;
+                }
+                break;
+              default:
+                targetPositions = new Float32Array(particleCount * 3);
+            }
+            targetShapePositionsRef.current = targetPositions;
+
+            // 触发摄像头动画
+            if (cameraRef.current) {
+              // 记录原始位置
+              shapeTransitionCameraStateRef.current = {
+                phase: "zooming-out",
+                originalCameraPos: cameraRef.current.position.clone(),
+              };
+
+              // 开始移动到目标位置 (0, 50, 80)
+              // 使用 cameraAnimationRef 来处理平滑移动
+              const params = paramsRef.current;
+              cameraAnimationRef.current = {
+                isAnimating: true,
+                startPos: cameraRef.current.position.clone(),
+                targetPos: new THREE.Vector3(
+                  params.cameraTargetX,
+                  params.cameraTargetY,
+                  params.cameraTargetZ
+                ),
+                progress: 0,
+                duration: CAMERA_ZOOM_DURATION, // 前3秒移动
+                onComplete: () => {
+                  // 移动完成后，进入暂停阶段
+                  shapeTransitionCameraStateRef.current.phase = "pausing";
+
+                  // 2秒后返回
+                  setTimeout(() => {
+                    if (!cameraRef.current) return;
+
+                    shapeTransitionCameraStateRef.current.phase = "zooming-in";
+                    const originalPos =
+                      shapeTransitionCameraStateRef.current.originalCameraPos ||
+                      new THREE.Vector3(
+                        params.cameraX,
+                        params.cameraY,
+                        params.cameraZ
+                      );
+
+                    cameraAnimationRef.current = {
+                      isAnimating: true,
+                      startPos: cameraRef.current.position.clone(),
+                      targetPos: originalPos,
+                      progress: 0,
+                      duration: CAMERA_ZOOM_DURATION, // 返回也用3秒，保持平滑
+                      onComplete: () => {
+                        shapeTransitionCameraStateRef.current.phase = "idle";
+                      },
+                    };
+                  }, SHAPE_PAUSE_DURATION * 1000); // 暂停2秒
+                },
+              };
+            }
           }
 
-          // 形态过渡逻辑
+          // 形态过渡逻辑 - 直接插值位置，无额外效果
           if (shapeTransitionTargetRef.current !== shapeModeRef.current) {
-            if (
-              cameraState.phase === "zooming-out" ||
-              cameraState.phase === "zooming-in"
-            ) {
-              shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
+            shapeTransitionRef.current += delta / SHAPE_TRANSITION_DURATION;
 
-              if (shapeTransitionRef.current >= 1) {
-                shapeTransitionRef.current = 1;
-                shapeModeRef.current = shapeTransitionTargetRef.current;
-                cameraState.phase = "pausing";
-                shapePauseTimerRef.current = 0;
+            if (shapeTransitionRef.current >= 1) {
+              shapeTransitionRef.current = 0;
+              shapeModeRef.current = shapeTransitionTargetRef.current;
+
+              // 过渡完成时，精确设置位置到目标形态，避免抖动
+              const elapsedTime = clock.elapsedTime;
+              let targetPositions: Float32Array;
+
+              // 如果有缓存的目标位置，直接使用
+              if (targetShapePositionsRef.current) {
+                targetPositions = targetShapePositionsRef.current;
               } else {
-                const elapsedTime = clock.elapsedTime;
-                let targetPositions: Float32Array;
-
-                switch (shapeTransitionTargetRef.current) {
+                // 降级处理（不应该发生）
+                switch (shapeModeRef.current) {
                   case "nebula":
                     targetPositions = generateNebulaShape(particleCount);
                     break;
@@ -847,130 +1135,95 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                       elapsedTime
                     );
                     break;
+                  case "atomic":
+                    targetPositions = generateAtomicShape(particleCount);
+                    break;
                   default:
                     targetPositions = originalPositionsRef.current!;
                 }
+              }
 
-                const progress = shapeTransitionRef.current;
-                const nebulaPositions = nebulaRef.current.geometry.attributes
-                  .position.array as Float32Array;
-                const original = originalPositionsRef.current!;
-
-                let scaleFactor: number;
-                let blendT: number;
-
-                if (progress < 0.4) {
-                  const shrinkProgress = progress / 0.4;
-                  const shrinkEase = easeInOutCubic(shrinkProgress);
-                  scaleFactor = 1 - shrinkEase * 0.9;
-                  blendT = 0;
+              // 如果是 atomic 模式，使用之前生成的轨道
+              if (shapeModeRef.current === "atomic") {
+                if (targetAtomicOrbitsRef.current) {
+                  atomicOrbitsRef.current = targetAtomicOrbitsRef.current;
+                  targetAtomicOrbitsRef.current = null;
                 } else {
-                  const blendProgress = (progress - 0.4) / 0.6;
-                  scaleFactor = 0.1;
-                  blendT = easeInOutCubic(blendProgress);
+                  atomicOrbitsRef.current = generateAtomicOrbits(particleCount);
                 }
-
-                for (let i = 0; i < particleCount; i++) {
-                  const idx = i * 3;
-                  const blendedX =
-                    original[idx] * (1 - blendT) +
-                    targetPositions[idx] * blendT;
-                  const blendedY =
-                    original[idx + 1] * (1 - blendT) +
-                    targetPositions[idx + 1] * blendT;
-                  const blendedZ =
-                    original[idx + 2] * (1 - blendT) +
-                    targetPositions[idx + 2] * blendT;
-
-                  nebulaPositions[idx] = blendedX * scaleFactor;
-                  nebulaPositions[idx + 1] = blendedY * scaleFactor;
-                  nebulaPositions[idx + 2] = blendedZ * scaleFactor;
-                }
-                nebulaRef.current.geometry.attributes.position.needsUpdate =
-                  true;
+                initFixedAtomicPairs(particleCount);
               }
-            }
-          }
-
-          // 停顿阶段处理
-          if (cameraState.phase === "pausing") {
-            shapePauseTimerRef.current += delta;
-
-            if (shapePauseTimerRef.current >= SHAPE_PAUSE_DURATION) {
-              cameraState.phase = "expanding";
-              shapeExpandProgressRef.current = 0;
-            }
-          }
-
-          // 展开阶段处理
-          if (cameraState.phase === "expanding") {
-            shapeExpandProgressRef.current += delta / SHAPE_EXPAND_DURATION;
-
-            if (shapeExpandProgressRef.current >= 1) {
-              shapeExpandProgressRef.current = 0;
-              shapeTransitionRef.current = 0;
-              shapeTransitionTargetRef.current = shapeModeRef.current;
 
               const nebulaPositions = nebulaRef.current.geometry.attributes
                 .position.array as Float32Array;
-              originalPositionsRef.current = new Float32Array(nebulaPositions);
 
-              if (cameraState.originalCameraPos) {
-                cameraState.phase = "zooming-in";
-                cameraAnimationRef.current = {
-                  isAnimating: true,
-                  startPos: camera.position.clone(),
-                  targetPos: cameraState.originalCameraPos.clone(),
-                  progress: 0,
-                  duration: CAMERA_ZOOM_DURATION,
-                  onComplete: () => {
-                    cameraState.phase = "idle";
-                    cameraState.originalCameraPos = null;
-                  },
-                };
-              } else {
-                cameraState.phase = "idle";
+              // 精确设置位置
+              for (let i = 0; i < particleCount * 3; i++) {
+                nebulaPositions[i] = targetPositions[i];
               }
+
+              originalPositionsRef.current = new Float32Array(targetPositions);
+              nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+
+              // 清理缓存
+              targetShapePositionsRef.current = null;
+              settledParticlesOriginalPositionsRef.current.clear();
+              settledParticlesTargetPositionsRef.current.clear();
+
+              // 开始稳定期，防止立即应用动态效果
+              shapeStabilizationTimerRef.current = 0.5; // 0.5秒稳定期
+              shapeTransitionRef.current = 0; // 结束过渡状态
             } else {
-              const expandProgress = shapeExpandProgressRef.current;
-              const expandEase = easeInOutCubic(expandProgress);
-              const scaleFactor = 0.1 + expandEase * 0.9;
+              // 使用缓存的目标位置进行插值，确保目标是稳定的
+              const targetPositions =
+                targetShapePositionsRef.current ||
+                originalPositionsRef.current!;
 
+              const progress = shapeTransitionRef.current;
               const nebulaPositions = nebulaRef.current.geometry.attributes
                 .position.array as Float32Array;
+              const original = originalPositionsRef.current!;
 
-              let targetPositions: Float32Array;
-              const elapsedTime = clock.elapsedTime;
-              switch (shapeModeRef.current) {
-                case "nebula":
-                  targetPositions = generateNebulaShape(particleCount);
-                  break;
-                case "river":
-                  targetPositions = generateRiverShape(particleCount);
-                  break;
-                case "wave":
-                  targetPositions = generateWaveShape(
-                    particleCount,
-                    elapsedTime
-                  );
-                  break;
-                default:
-                  targetPositions = originalPositionsRef.current!;
-              }
+              const blendT = easeInOutCubic(progress);
 
               for (let i = 0; i < particleCount; i++) {
                 const idx = i * 3;
-                nebulaPositions[idx] = targetPositions[idx] * scaleFactor;
+                nebulaPositions[idx] =
+                  original[idx] * (1 - blendT) + targetPositions[idx] * blendT;
                 nebulaPositions[idx + 1] =
-                  targetPositions[idx + 1] * scaleFactor;
+                  original[idx + 1] * (1 - blendT) +
+                  targetPositions[idx + 1] * blendT;
                 nebulaPositions[idx + 2] =
-                  targetPositions[idx + 2] * scaleFactor;
+                  original[idx + 2] * (1 - blendT) +
+                  targetPositions[idx + 2] * blendT;
               }
               nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+
+              // 更新新粒子的过渡位置
+              settledParticlesRef.current.forEach((p) => {
+                if (p.mesh) {
+                  const originalPos =
+                    settledParticlesOriginalPositionsRef.current.get(p.id);
+                  const targetPos =
+                    settledParticlesTargetPositionsRef.current.get(p.id);
+
+                  if (originalPos && targetPos) {
+                    p.mesh.position.lerpVectors(originalPos, targetPos, blendT);
+                  }
+                }
+              });
             }
           } else if (
+            shapeModeRef.current === "nebula" &&
+            cameraState.phase === "idle" &&
+            shapeStabilizationTimerRef.current <= 0
+          ) {
+            // Nebula 模式：新粒子保持在其位置，只随整体旋转（已在上面处理）
+            // 不需要额外更新位置
+          } else if (
             shapeModeRef.current === "wave" &&
-            cameraState.phase === "idle"
+            cameraState.phase === "idle" &&
+            shapeStabilizationTimerRef.current <= 0
           ) {
             const elapsedTime = clock.elapsedTime;
             const nebulaPositions = nebulaRef.current.geometry.attributes
@@ -982,9 +1235,24 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 (wavePositions[i] - nebulaPositions[i]) * 0.02;
             }
             nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+
+            // 更新新粒子的波浪运动
+            settledParticlesRef.current.forEach((p, i) => {
+              if (p.mesh) {
+                const virtualIndex = NEBULA_PARTICLE_COUNT + i;
+                const { position: targetPos } = calculateParticleTargetPosition(
+                  "wave",
+                  virtualIndex,
+                  NEBULA_PARTICLE_COUNT + settledParticlesRef.current.length,
+                  elapsedTime
+                );
+                p.mesh.position.lerp(targetPos, 0.02);
+              }
+            });
           } else if (
             shapeModeRef.current === "river" &&
-            cameraState.phase === "idle"
+            cameraState.phase === "idle" &&
+            shapeStabilizationTimerRef.current <= 0
           ) {
             const nebulaPositions = nebulaRef.current.geometry.attributes
               .position.array as Float32Array;
@@ -997,6 +1265,58 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
               }
             }
             nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+
+            // 更新新粒子的河流运动
+            settledParticlesRef.current.forEach((p) => {
+              if (p.mesh) {
+                p.mesh.position.x += flowSpeed * delta * 5;
+                if (p.mesh.position.x > 15 * Math.PI) {
+                  p.mesh.position.x = -15 * Math.PI;
+                }
+              }
+            });
+          } else if (
+            shapeModeRef.current === "atomic" &&
+            cameraState.phase === "idle" &&
+            shapeStabilizationTimerRef.current <= 0 &&
+            atomicOrbitsRef.current
+          ) {
+            // 原子模型动画：粒子围绕中心做3D椭圆轨道运动
+            const nebulaPositions = nebulaRef.current.geometry.attributes
+              .position.array as Float32Array;
+            updateAtomicPositions(
+              atomicOrbitsRef.current,
+              nebulaPositions,
+              delta
+            );
+            nebulaRef.current.geometry.attributes.position.needsUpdate = true;
+
+            // 更新新粒子的原子运动
+            settledParticlesRef.current.forEach((p, i) => {
+              if (p.mesh) {
+                let orbit = settledParticlesOrbitsRef.current.get(p.id);
+                if (!orbit) {
+                  // 如果没有轨道，生成一个
+                  const virtualIndex = NEBULA_PARTICLE_COUNT + i;
+                  const { orbit: newOrbit } = calculateParticleTargetPosition(
+                    "atomic",
+                    virtualIndex,
+                    NEBULA_PARTICLE_COUNT + settledParticlesRef.current.length,
+                    0
+                  );
+                  if (newOrbit) {
+                    orbit = newOrbit;
+                    settledParticlesOrbitsRef.current.set(p.id, orbit);
+                  }
+                }
+
+                if (orbit) {
+                  orbit.angle += orbit.angularSpeed * delta;
+                  const pos = calculateOrbitPosition(orbit);
+                  p.mesh.position.copy(pos);
+                }
+              }
+            });
           }
 
           // 星云粒子效果
@@ -1016,19 +1336,43 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             Math.max(0.85, baseOpacity * (0.95 + breathWave * 0.05))
           );
 
-          const nebulaMat = nebulaRef.current
-            .material as THREE.PointsMaterial;
+          const nebulaMat = nebulaRef.current.material as THREE.PointsMaterial;
           nebulaMat.opacity = breathOpacity;
           nebulaMat.size = breathSize;
         }
         starField.rotation.y += paramsRef.current.nebulaSpeed * 0.1;
 
+        // 流星效果
+        if (
+          clock.elapsedTime - lastMeteorTimeRef.current >
+          METEOR_CONFIG.INTERVAL
+        ) {
+          console.log("Meteor appeared!");
+          lastMeteorTimeRef.current = clock.elapsedTime;
+          const meteor = createMeteor(clock.elapsedTime);
+          scene.add(meteor);
+          meteorsRef.current.push(meteor as unknown as THREE.Mesh);
+        }
+
+        // 更新流星
+        updateMeteors(
+          meteorsRef.current as unknown as Line2[],
+          scene,
+          clock.elapsedTime,
+          delta
+        );
+
         // 更新高亮粒子效果
         if (highlightSpriteRef.current) {
           const highlightId = highlightedParticleIdRef.current;
-          const cameraPhase = shapeTransitionCameraStateRef.current.phase;
 
-          const shouldShow = highlightId && cameraPhase === "idle";
+          // 如果选中的粒子发生变化，重置淡入效果以触发"先发光后连线"的序列
+          if (highlightId !== lastHighlightedIdRef.current) {
+            highlightFadeRef.current = 0;
+            lastHighlightedIdRef.current = highlightId;
+          }
+
+          const shouldShow = !!highlightId;
 
           highlightTargetRef.current = shouldShow ? 1 : 0;
 
@@ -1047,30 +1391,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             let particleColor = "#ffffff";
 
             if (highlightId) {
-              const nebulaParticleIndex =
-                nebulaParticleDataRef.current.findIndex(
-                  (p) => p.id === highlightId
-                );
-
-              if (nebulaParticleIndex >= 0 && nebulaRef.current) {
-                const particle =
-                  nebulaParticleDataRef.current[nebulaParticleIndex];
-
-                const nebulaPositions = nebulaRef.current.geometry.attributes
-                  .position.array as Float32Array;
-                const localPos = new THREE.Vector3(
-                  nebulaPositions[nebulaParticleIndex * 3],
-                  nebulaPositions[nebulaParticleIndex * 3 + 1],
-                  nebulaPositions[nebulaParticleIndex * 3 + 2]
-                );
-                targetPos = localPos.applyMatrix4(
-                  nebulaRef.current.matrixWorld
-                );
-                particleColor = particle.color;
-              }
-            }
-
-            if (!targetPos && highlightId) {
+              // 先检查是否是新粒子（settled particles）
               const settled = settledParticlesRef.current.find(
                 (p) => p.id === highlightId
               );
@@ -1078,6 +1399,47 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 targetPos = new THREE.Vector3();
                 settled.mesh.getWorldPosition(targetPos);
                 particleColor = settled.color;
+
+                // Debug: Check if targetPos is suspiciously close to origin
+                if (targetPos.length() < 0.1) {
+                  console.warn(
+                    `[Highlight] Settled particle ${highlightId} is at origin!`,
+                    {
+                      localPos: settled.mesh.position.clone(),
+                      parent: settled.mesh.parent?.type,
+                    }
+                  );
+                }
+              }
+
+              // 如果不是新粒子，检查原始星云粒子
+              if (!targetPos) {
+                const nebulaParticleIndex =
+                  nebulaParticleDataRef.current.findIndex(
+                    (p) => p.id === highlightId
+                  );
+
+                // 只有当 index 小于实际星云粒子数量时才使用几何体位置
+                if (
+                  nebulaParticleIndex >= 0 &&
+                  nebulaParticleIndex < NEBULA_PARTICLE_COUNT &&
+                  nebulaRef.current
+                ) {
+                  const particle =
+                    nebulaParticleDataRef.current[nebulaParticleIndex];
+
+                  const nebulaPositions = nebulaRef.current.geometry.attributes
+                    .position.array as Float32Array;
+                  const localPos = new THREE.Vector3(
+                    nebulaPositions[nebulaParticleIndex * 3],
+                    nebulaPositions[nebulaParticleIndex * 3 + 1],
+                    nebulaPositions[nebulaParticleIndex * 3 + 2]
+                  );
+                  targetPos = localPos.applyMatrix4(
+                    nebulaRef.current.matrixWorld
+                  );
+                  particleColor = particle.color;
+                }
               }
             }
 
@@ -1110,73 +1472,128 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           }
         }
 
-        // 更新粒子连线
-        const frameCount = Math.floor(clock.elapsedTime * 60) % 10;
-        if (particleLinesRef.current && nebulaRef.current && frameCount === 0) {
-          const lineMatRef = particleLinesRef.current
-            .material as THREE.LineDashedMaterial;
-          lineMatRef.opacity = 0.3;
+        // 更新粒子连线（每3帧更新一次以优化性能）
+        const frameCount = renderer.info.render.frame;
+        // 检查是否正在进行形态切换
+        const isTransitioning =
+          shapeTransitionTargetRef.current !== shapeModeRef.current;
 
-          const dataParticles: { index: number; pos: THREE.Vector3 }[] = [];
-          const particleData = nebulaParticleDataRef.current;
+        if (
+          particleLinesRef.current &&
+          nebulaRef.current &&
+          shapeModeRef.current === "atomic" &&
+          !isTransitioning && // 过渡期间不显示连线
+          frameCount % 4 === 0
+        ) {
           const nebulaPositions = nebulaRef.current.geometry.attributes.position
             .array as Float32Array;
 
-          for (let i = 0; i < particleData.length; i++) {
-            const p = particleData[i];
-            if (p.id && !p.id.startsWith("nebula-") && p.text) {
-              const pos = new THREE.Vector3(
-                nebulaPositions[i * 3],
-                nebulaPositions[i * 3 + 1],
-                nebulaPositions[i * 3 + 2]
-              );
-              pos.applyMatrix4(nebulaRef.current!.matrixWorld);
-              dataParticles.push({ index: i, pos });
+          // 使用原子系统计算连接
+          if (atomicOrbitsRef.current) {
+            // 不传入 maxDistance，使用 ATOMIC_CONFIG 内部的默认值
+            const connections = calculateAtomicConnections(
+              nebulaPositions,
+              atomicOrbitsRef.current
+            );
+
+            // 确保连接池足够大
+            while (particleLinesRef.current.length < connections.length) {
+              const geometry = new LineGeometry();
+              const material = new LineMaterial({
+                color: 0xffffff,
+                linewidth: 1,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                vertexColors: true, // 启用顶点颜色以支持渐变
+              });
+              material.resolution.set(window.innerWidth, window.innerHeight);
+
+              const line2 = new Line2(geometry, material);
+              line2.renderOrder = 0; // 连线在最底层渲染
+              scene.add(line2);
+              particleLinesRef.current.push(line2);
             }
-          }
 
-          const linePosArray = particleLinesRef.current.geometry.attributes
-            .position.array as Float32Array;
-          let lineIndex = 0;
-          const connectionCount = new Map<number, number>();
+            // 预先计算世界坐标矩阵
+            nebulaRef.current.updateMatrixWorld();
+            const matrixWorld = nebulaRef.current.matrixWorld;
+            const vecA = new THREE.Vector3();
+            const vecB = new THREE.Vector3();
 
-          const possibleLines: { i: number; j: number; dist: number }[] = [];
-          for (let i = 0; i < dataParticles.length; i++) {
-            for (let j = i + 1; j < dataParticles.length; j++) {
-              const dist = dataParticles[i].pos.distanceTo(
-                dataParticles[j].pos
-              );
-              if (dist < MAX_LINE_DISTANCE) {
-                possibleLines.push({ i, j, dist });
+            // 更新现有线条
+            for (let i = 0; i < particleLinesRef.current.length; i++) {
+              const line = particleLinesRef.current[i];
+              if (i < connections.length) {
+                const conn = connections[i];
+                line.visible = true;
+
+                // 获取局部坐标并转换为世界坐标
+                vecA
+                  .set(
+                    nebulaPositions[conn.indexA * 3],
+                    nebulaPositions[conn.indexA * 3 + 1],
+                    nebulaPositions[conn.indexA * 3 + 2]
+                  )
+                  .applyMatrix4(matrixWorld);
+
+                vecB
+                  .set(
+                    nebulaPositions[conn.indexB * 3],
+                    nebulaPositions[conn.indexB * 3 + 1],
+                    nebulaPositions[conn.indexB * 3 + 2]
+                  )
+                  .applyMatrix4(matrixWorld);
+
+                // 更新位置
+                line.geometry.setPositions([
+                  vecA.x,
+                  vecA.y,
+                  vecA.z,
+                  vecB.x,
+                  vecB.y,
+                  vecB.z,
+                ]);
+
+                // 更新线条距离计算（Line2 需要这个）
+                line.computeLineDistances();
+
+                // 更新颜色（渐变效果）
+                // 移除脉冲，使用固定亮度
+                const colorA = conn.colorA.clone().multiplyScalar(0.5);
+                const colorB = conn.colorB.clone().multiplyScalar(0.2);
+
+                line.geometry.setColors([
+                  colorA.r,
+                  colorA.g,
+                  colorA.b,
+                  colorB.r,
+                  colorB.g,
+                  colorB.b,
+                ]);
+
+                // 更新材质 - 动态线宽
+                line.material.linewidth = conn.lineWidth;
+                line.material.opacity = conn.opacity;
+                line.material.resolution.set(
+                  window.innerWidth,
+                  window.innerHeight
+                );
+                line.material.needsUpdate = true;
+              } else {
+                line.visible = false;
               }
             }
           }
-          possibleLines.sort((a, b) => a.dist - b.dist);
-
-          for (const line of possibleLines) {
-            if (lineIndex >= MAX_LINES) break;
-            const countI = connectionCount.get(line.i) || 0;
-            const countJ = connectionCount.get(line.j) || 0;
-            if (
-              countI < MAX_CONNECTIONS_PER_PARTICLE &&
-              countJ < MAX_CONNECTIONS_PER_PARTICLE
-            ) {
-              linePosArray[lineIndex * 6] = dataParticles[line.i].pos.x;
-              linePosArray[lineIndex * 6 + 1] = dataParticles[line.i].pos.y;
-              linePosArray[lineIndex * 6 + 2] = dataParticles[line.i].pos.z;
-              linePosArray[lineIndex * 6 + 3] = dataParticles[line.j].pos.x;
-              linePosArray[lineIndex * 6 + 4] = dataParticles[line.j].pos.y;
-              linePosArray[lineIndex * 6 + 5] = dataParticles[line.j].pos.z;
-              lineIndex++;
-              connectionCount.set(line.i, countI + 1);
-              connectionCount.set(line.j, countJ + 1);
-            }
-          }
-
-          particleLinesRef.current.geometry.attributes.position.needsUpdate =
-            true;
-          particleLinesRef.current.geometry.setDrawRange(0, lineIndex * 2);
-          particleLinesRef.current.computeLineDistances();
+        } else if (
+          particleLinesRef.current &&
+          (shapeModeRef.current !== "atomic" || isTransitioning)
+        ) {
+          // 非原子模式或过渡期间隐藏所有连线
+          particleLinesRef.current.forEach((line) => {
+            line.visible = false;
+          });
         }
 
         // 更新粒子动画
@@ -1282,12 +1699,23 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             case "settling": {
               p.phaseProgress += delta;
 
-              if (nebulaRef.current && p.mesh.parent !== nebulaRef.current) {
-                const worldPos = p.mesh.position.clone();
-                nebulaRef.current.worldToLocal(worldPos);
-                scene.remove(p.mesh);
-                nebulaRef.current.add(p.mesh);
-                p.mesh.position.copy(worldPos);
+              // 不再将 mesh 移入 nebula 组，保持在 scene 中以便点击检测
+              // mesh 保持在世界坐标系，位置由 shapeUtils 计算并实时更新
+
+              // 关键修复：在 settling 阶段，让粒子保持在目标位置（考虑形态动态）
+              if (shapeModeRef.current === "atomic") {
+                // 原子模式：让粒子跟随轨道运动
+                const orbit = settledParticlesOrbitsRef.current.get(p.id);
+                if (orbit) {
+                  orbit.angle += orbit.angularSpeed * delta;
+                  const pos = calculateOrbitPosition(orbit);
+                  p.mesh.position.copy(pos);
+                }
+              } else {
+                // 其他模式：保持在目标位置
+                if (p.targetPos) {
+                  p.mesh.position.copy(p.targetPos);
+                }
               }
 
               const blinkT = p.phaseProgress * params.settleBlinkSpeed;
@@ -1301,11 +1729,26 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 (0.7 + blink * 0.5 * params.settleBlinkAmplitude);
               p.sprite.scale.set(glowScale, glowScale, 1);
 
-              const floatY = Math.sin(p.phaseProgress * 2) * 0.3;
-              p.mesh.position.y += floatY * delta;
+              // 每0.5秒输出一次闪烁中的位置
+              if (
+                Math.floor(p.phaseProgress * 2) !==
+                Math.floor((p.phaseProgress - delta) * 2)
+              ) {
+                console.log(`[Settling] Particle ${p.id} blinking at:`, {
+                  localPos: p.mesh.position.clone(),
+                  worldPos: p.mesh.getWorldPosition(new THREE.Vector3()),
+                  targetPos: p.targetPos?.clone(),
+                  progress: p.phaseProgress.toFixed(2),
+                });
+              }
+
+              // 移除 floatY - 不再需要，因为粒子现在跟随轨道/保持在目标位置
 
               if (p.phaseProgress >= params.settleBlinkDuration) {
                 p.phase = "nebula";
+
+                // 粒子汇入星云，恢复星云动画计时
+                resumeNebulaTimer();
 
                 p.mesh.userData = {
                   type: "settledParticle",
@@ -1315,6 +1758,16 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                   type: "settledParticle",
                   particleId: p.id,
                 };
+
+                console.log(`[Settle Complete] Particle ${p.id} final state:`, {
+                  finalLocalPos: p.mesh.position.clone(),
+                  finalWorldPos: p.mesh.getWorldPosition(new THREE.Vector3()),
+                  originalTargetPos: p.targetPos?.clone(),
+                  parent: p.mesh.parent?.type,
+                  meshInSettledMeshes: settledMeshesRef.current.includes(
+                    p.mesh
+                  ),
+                });
 
                 settledParticlesRef.current.push({
                   id: p.id,
@@ -1413,6 +1866,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
 
       return () => {
         window.removeEventListener("resize", handleResize);
+        window.removeEventListener("mousemove", handleMouseMove);
         renderer.domElement.removeEventListener("click", handleClick);
         controls.removeEventListener("start", handleDragStart);
         controls.removeEventListener("end", handleDragEnd);

@@ -74,3 +74,20 @@ export const generateWaveShape = (
   }
   return positions;
 };
+
+/**
+ * 生成漂浮形态位置（随机分布）
+ */
+export const generateFloatShape = (particleCount: number): Float32Array => {
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    // 随机分布在空间中
+    positions[i * 3] = (Math.random() - 0.5) * 100; // X: -50 到 50
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 60; // Y: -30 到 30
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 100; // Z: -50 到 50
+  }
+  return positions;
+};
+
+// 导出原子模型形态生成器
+export { generateAtomicShape } from "./atomicSystem";
