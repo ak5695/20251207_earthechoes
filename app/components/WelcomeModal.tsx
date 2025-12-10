@@ -8,6 +8,7 @@ import {
   Language,
   TranslationStrings,
 } from "../config/translations";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface WelcomeModalProps {
   language: Language;
@@ -45,7 +46,10 @@ export default function WelcomeModal({
           <div className="absolute top-4 right-4">
             <div className="relative">
               <button
-                onClick={() => setShowLangMenu(!showLangMenu)}
+                onClick={() => {
+                  triggerHapticFeedback();
+                  setShowLangMenu(!showLangMenu);
+                }}
                 className="flex items-center gap-1 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white/80 text-sm transition-colors btn-interactive"
               >
                 <Globe className="w-4 h-4" />
@@ -62,6 +66,7 @@ export default function WelcomeModal({
                     <button
                       key={lang}
                       onClick={() => {
+                        triggerHapticFeedback();
                         onLanguageChange(lang);
                         setShowLangMenu(false);
                       }}
@@ -129,7 +134,10 @@ export default function WelcomeModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              triggerHapticFeedback();
+              onClose();
+            }}
             className="w-full py-3 bg-transparent hover:bg-white/5 border border-white/30 hover:border-white/50 rounded-xl text-white/80 hover:text-white font-medium transition-colors btn-glow btn-ripple"
           >
             {t.startButton}

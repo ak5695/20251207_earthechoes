@@ -50,7 +50,6 @@ function createSyntheticImpulseResponse(
 export function useCosmicAudio(): UseCosmicAudioReturn {
   const audioContextRef = useRef<AudioContext | null>(null);
   const convolverRef = useRef<ConvolverNode | null>(null);
-  const irLoadedRef = useRef<boolean>(false); // 标记是否已加载真实 IR
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,31 +65,6 @@ export function useCosmicAudio(): UseCosmicAudioReturn {
         audioContextRef.current.close();
       }
     };
-  }, []);
-
-  // 后台异步加载真实 IR 文件
-  const loadRealImpulseResponse = useCallback(async () => {
-    if (
-      !audioContextRef.current ||
-      !convolverRef.current ||
-      irLoadedRef.current
-    )
-      return;
-
-    try {
-      const response = await fetch("/impulse-response.wav");
-      if (response.ok) {
-        const arrayBuffer = await response.arrayBuffer();
-        const impulseBuffer = await audioContextRef.current.decodeAudioData(
-          arrayBuffer
-        );
-        convolverRef.current.buffer = impulseBuffer;
-        irLoadedRef.current = true;
-        console.log("✨ Upgraded to real impulse response (1.51MB loaded)");
-      }
-    } catch (err) {
-      console.log("📡 Using synthetic reverb (IR file load failed):", err);
-    }
   }, []);
 
   // 初始化 AudioContext 和混响
@@ -118,19 +92,16 @@ export function useCosmicAudio(): UseCosmicAudioReturn {
       const convolver = audioContext.createConvolver();
       convolverRef.current = convolver;
 
-      // 🚀 快速启动：先用合成混响（瞬间完成）
+      // 🚀 使用合成混响（无需下载 1.5MB IR 文件）
       const syntheticBuffer = createSyntheticImpulseResponse(
         audioContext,
-        5,
+        3, // 稍微减少混响时间，使其更清晰
         2
       );
       convolver.buffer = syntheticBuffer;
 
       setIsInitialized(true);
-      console.log("🎵 Cosmic Audio Engine initialized (synthetic reverb)");
-
-      // 🌐 后台异步加载真实 IR 文件（不阻塞用户）
-      loadRealImpulseResponse();
+      console.log("🎵 Cosmic Audio Engine initialized (synthetic reverb only)");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to initialize audio";

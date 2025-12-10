@@ -14,6 +14,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 // 从拆分的模块导入
 import {
@@ -219,12 +220,27 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     useEffect(() => {
       const loadPosts = async () => {
         try {
-          const { data, error } = await supabase
-            .from("posts")
-            .select("*")
-            .eq("language", language)
-            .order("created_at", { ascending: false })
-            .limit(NEBULA_PARTICLE_COUNT);
+          // 尝试使用 RPC 获取随机数据
+          let { data, error } = await supabase.rpc("get_random_posts", {
+            p_language: language,
+            p_limit: NEBULA_PARTICLE_COUNT,
+          });
+
+          // 如果 RPC 失败（例如函数未创建），降级到按时间排序的普通查询
+          if (error) {
+            console.warn(
+              "get_random_posts RPC failed, falling back to standard query:",
+              error
+            );
+            const result = await supabase
+              .from("posts")
+              .select("*")
+              .eq("language", language)
+              .order("created_at", { ascending: false })
+              .limit(NEBULA_PARTICLE_COUNT);
+            data = result.data;
+            error = result.error;
+          }
 
           if (error) {
             console.error("加载心情数据失败:", error);
@@ -783,6 +799,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 (p) => p.id === particleId
               );
               if (particle) {
+                triggerHapticFeedback();
                 onParticleClickRef.current?.(particle);
                 return;
               }
@@ -824,6 +841,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 ...currentParticleData[index],
                 position: worldPos,
               };
+              triggerHapticFeedback();
               onParticleClickRef.current?.(clickedParticle);
               return;
             }

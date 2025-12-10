@@ -4,11 +4,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { X, Heart, MessageCircle, Trash2, LogOut } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface ProfilePanelProps {
   currentUser: User;
   onClose: () => void;
   onLogout: () => void;
+  onPostClick: (post: Post & { user: User }) => void;
   language: string;
   isClosing?: boolean;
 }
@@ -127,6 +129,7 @@ export default function ProfilePanel({
   currentUser,
   onClose,
   onLogout,
+  onPostClick,
   language,
   isClosing = false,
 }: ProfilePanelProps) {
@@ -232,27 +235,41 @@ export default function ProfilePanel({
   const bgColor = generateRandomAvatar(currentUser.id);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ pointerEvents: "auto" }}
+    >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/70 backdrop-blur-md ${
           isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
         }`}
-        onClick={onClose}
+        onClick={() => {
+          console.log("ProfilePanel: Backdrop clicked");
+          triggerHapticFeedback();
+          onClose();
+        }}
       />
 
       {/* Panel */}
       <div
-        className={`relative w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
-        style={{ backdropFilter: "blur(20px)" }}
+        style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
+        onClick={(e) => {
+          // 阻止点击面板背景时触发 Backdrop 的关闭事件
+          e.stopPropagation();
+        }}
       >
         {/* Header with Avatar */}
         <div className="relative pt-8 pb-6 px-6 border-b border-white/10">
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={() => {
+              triggerHapticFeedback();
+              onClose();
+            }}
             className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors btn-icon"
           >
             <X className="w-6 h-6" />
@@ -348,7 +365,14 @@ export default function ProfilePanel({
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-white/5 rounded-xl p-4 border border-white/10"
+                  className="bg-white/5 rounded-xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors relative z-20"
+                  style={{ pointerEvents: "auto" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log("ProfilePanel: Post clicked", post.id);
+                    triggerHapticFeedback();
+                    onPostClick({ ...post, user: currentUser });
+                  }}
                 >
                   {/* Post Content */}
                   <div className="flex items-start justify-between gap-2">
@@ -365,7 +389,11 @@ export default function ProfilePanel({
                       </span>
                     </div>
                     <button
-                      onClick={() => handleDeletePost(post.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerHapticFeedback();
+                        handleDeletePost(post.id);
+                      }}
                       className="text-white/30 hover:text-red-400 transition-colors btn-icon"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -380,61 +408,11 @@ export default function ProfilePanel({
                       <Heart className="w-3.5 h-3.5" fill="currentColor" />
                       {post.likes_count}
                     </span>
-                    <button
-                      onClick={() =>
-                        setExpandedPost(
-                          expandedPost === post.id ? null : post.id
-                        )
-                      }
-                      className="flex items-center gap-1 text-blue-400/80 hover:text-blue-400 transition-colors btn-interactive"
-                    >
+                    <span className="flex items-center gap-1 text-blue-400/80">
                       <MessageCircle className="w-3.5 h-3.5" />
                       {post.comments_count} {t.comments}
-                    </button>
+                    </span>
                   </div>
-
-                  {/* Comments Expansion */}
-                  {expandedPost === post.id && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      {post.comments.length === 0 ? (
-                        <p className="text-white/30 text-xs">{t.noComments}</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {post.comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-2">
-                              <div
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                                style={{
-                                  backgroundColor: generateRandomAvatar(
-                                    comment.user?.id || ""
-                                  ),
-                                }}
-                              >
-                                {comment.user?.nickname
-                                  ?.charAt(0)
-                                  .toUpperCase() || "?"}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white/70 text-xs font-medium">
-                                    {comment.user?.nickname || "Unknown"}
-                                  </span>
-                                  <span className="text-white/30 text-xs">
-                                    {new Date(
-                                      comment.created_at
-                                    ).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                <p className="text-white/60 text-xs mt-0.5">
-                                  {comment.content}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
@@ -444,7 +422,10 @@ export default function ProfilePanel({
         {/* Footer - Logout */}
         <div className="border-t border-white/10 p-4">
           <button
-            onClick={handleLogout}
+            onClick={() => {
+              triggerHapticFeedback();
+              handleLogout();
+            }}
             className="w-full flex items-center justify-center gap-2 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors btn-glow btn-ripple"
           >
             <LogOut className="w-4 h-4" />

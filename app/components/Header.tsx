@@ -2,6 +2,7 @@
 
 import { Bell } from "lucide-react";
 import type { User } from "@/lib/supabase";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface HeaderProps {
   currentUser: User | null;
@@ -35,7 +36,10 @@ export default function Header({
 
         {/* 音乐控制按钮 */}
         <button
-          onClick={onToggleMusic}
+          onClick={() => {
+            triggerHapticFeedback();
+            onToggleMusic();
+          }}
           disabled={isMusicLoading}
           className={`w-10 h-10 flex items-center justify-center gap-[2px] text-indigo-300/60 hover:text-indigo-300 transition-colors btn-icon ${
             !isMusicPlaying ? "wave-paused" : ""
@@ -60,7 +64,10 @@ export default function Header({
         {/* 通知按钮 */}
         {currentUser && (
           <button
-            onClick={onOpenNotifications}
+            onClick={() => {
+              triggerHapticFeedback();
+              onOpenNotifications();
+            }}
             className="relative w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
           >
             <Bell className="w-5 h-5" />
@@ -75,6 +82,7 @@ export default function Header({
         {/* 用户头像/登录按钮 */}
         <button
           onClick={() => {
+            triggerHapticFeedback();
             if (currentUser) {
               onOpenProfile();
             } else {

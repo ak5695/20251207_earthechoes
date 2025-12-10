@@ -14,7 +14,7 @@ interface UseMusicReturn {
 }
 
 export function useMusic(
-  audioSrc: string = "/ambient-music-compressed.mp3"
+  audioSrc: string = "/ambient-music-optimized.mp3"
 ): UseMusicReturn {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -28,7 +28,7 @@ export function useMusic(
     audio.loop = true;
     audio.volume = 0.3;
     audioRef.current = audio;
-    audio.preload = "auto";
+    audio.preload = "none"; // 避免自动加载大文件
 
     const handleError = (e: Event) => {
       console.log("音频错误:", e, audio.error);

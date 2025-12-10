@@ -303,3 +303,22 @@ INSERT INTO topics (name) VALUES
   ('heartbreak'),
   ('healing'),
   ('midnight thoughts');
+
+-- =============================================
+-- 4. Helper Functions
+-- =============================================
+
+-- Function to get random posts
+CREATE OR REPLACE FUNCTION get_random_posts(
+  p_language VARCHAR,
+  p_limit INTEGER
+)
+RETURNS SETOF posts
+LANGUAGE sql
+AS $$
+  SELECT *
+  FROM posts
+  WHERE language = p_language
+  ORDER BY RANDOM()
+  LIMIT p_limit;
+$$;

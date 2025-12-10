@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { Shuffle, Loader2, X } from "lucide-react";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface UserSetupModalProps {
   onComplete: (user: User) => void;
@@ -371,7 +372,10 @@ export default function UserSetupModal({
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${
           isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
         }`}
-        onClick={handleClose}
+        onClick={() => {
+          triggerHapticFeedback();
+          handleClose();
+        }}
       />
 
       {/* 外层浮动容器 */}
@@ -384,7 +388,10 @@ export default function UserSetupModal({
         >
           {/* 关闭按钮 */}
           <button
-            onClick={handleClose}
+            onClick={() => {
+              triggerHapticFeedback();
+              handleClose();
+            }}
             className="absolute top-4 right-4 text-white/60 hover:text-white transition-opacity btn-icon"
           >
             <X className="w-5 h-5" />
@@ -487,7 +494,10 @@ export default function UserSetupModal({
                 <p className="text-sm text-red-400 text-center">{error}</p>
               )}
               <Button
-                onClick={handleLogin}
+                onClick={() => {
+                  triggerHapticFeedback();
+                  handleLogin();
+                }}
                 disabled={loading}
                 className="w-full bg-gray-700 hover:bg-gray-600 btn-glow btn-ripple"
               >
@@ -534,7 +544,10 @@ export default function UserSetupModal({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={handleRandomName}
+                    onClick={() => {
+                      triggerHapticFeedback();
+                      handleRandomName();
+                    }}
                     className="border-gray-600 hover:bg-gray-700 btn-icon"
                   >
                     <Shuffle className="w-4 h-4" />
@@ -555,7 +568,10 @@ export default function UserSetupModal({
                 <p className="text-sm text-red-400 text-center">{error}</p>
               )}
               <Button
-                onClick={handleRegister}
+                onClick={() => {
+                  triggerHapticFeedback();
+                  handleRegister();
+                }}
                 disabled={loading}
                 className="w-full bg-gray-700 hover:bg-gray-600 btn-glow btn-ripple"
               >

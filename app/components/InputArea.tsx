@@ -2,6 +2,7 @@
 
 import { forwardRef, RefObject } from "react";
 import { Send } from "lucide-react";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 type ContributionState = "idle" | "condensing" | "pulsing" | "launched";
 
@@ -120,7 +121,10 @@ const InputArea = forwardRef<HTMLDivElement, InputAreaProps>(
             }`}
           >
             <button
-              onClick={onSubmit}
+              onClick={() => {
+                triggerHapticFeedback();
+                onSubmit();
+              }}
               disabled={!inputText}
               className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed btn-interactive btn-ripple"
             >

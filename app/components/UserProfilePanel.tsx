@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { X, Heart, MessageCircle } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface UserProfilePanelProps {
   user: User;
   onClose: () => void;
+  onPostClick: (post: Post) => void;
   language: string;
   isClosing?: boolean;
 }
@@ -92,6 +94,7 @@ function generateRandomAvatar(seed: string): string {
 export default function UserProfilePanel({
   user,
   onClose,
+  onPostClick,
   language,
   isClosing = false,
 }: UserProfilePanelProps) {
@@ -139,27 +142,39 @@ export default function UserProfilePanel({
   }, [user.id]);
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center px-4">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ pointerEvents: "auto" }}
+    >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/70 backdrop-blur-sm ${
+        className={`absolute inset-0 bg-black/70 backdrop-blur-md ${
           isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
         }`}
-        onClick={onClose}
+        onClick={() => {
+          triggerHapticFeedback();
+          onClose();
+        }}
       />
 
       {/* Panel */}
       <div
-        className={`relative w-full max-w-md bg-linear-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
-          isClosing ? "animate-card-exit" : "animate-card-enter"
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
+          isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
-        style={{ backdropFilter: "blur(20px)" }}
+        style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
       >
         {/* Header with Avatar */}
         <div className="relative pt-8 pb-6 px-6 border-b border-white/10">
           {/* Close button */}
           <button
-            onClick={onClose}
+            onClick={() => {
+              triggerHapticFeedback();
+              onClose();
+            }}
             className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors btn-icon"
           >
             <X className="w-6 h-6" />
@@ -255,7 +270,13 @@ export default function UserProfilePanel({
               {posts.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-white/5 rounded-xl p-4 border border-white/10"
+                  className="bg-white/5 rounded-xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors relative z-20"
+                  style={{ pointerEvents: "auto" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    triggerHapticFeedback();
+                    onPostClick(post);
+                  }}
                 >
                   {/* Post Content */}
                   <div className="flex items-start justify-between gap-2">

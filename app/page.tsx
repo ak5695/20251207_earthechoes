@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { startProgress, stopProgress } from "next-nprogress-bar";
 import React from "react";
 
 // 配置
@@ -24,6 +25,7 @@ import CommentPanel from "./components/CommentPanel";
 import NotificationPanel from "./components/NotificationPanel";
 import UserSetupModal from "./components/UserSetupModal";
 import ProfilePanel from "./components/ProfilePanel";
+import UserProfilePanel from "./components/UserProfilePanel";
 import MoodCard from "./components/MoodCard";
 import Header from "./components/Header";
 import WelcomeModal from "./components/WelcomeModal";
@@ -92,6 +94,14 @@ export default function Home() {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [isProfileClosing, setIsProfileClosing] = useState(false);
+
+  // === 导航状态 ===
+  const [previousPanel, setPreviousPanel] = useState<
+    "profile" | "user-profile" | null
+  >(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
+  const [showUserProfilePanel, setShowUserProfilePanel] = useState(false);
+  const [isUserProfileClosing, setIsUserProfileClosing] = useState(false);
 
   // === 自定义 Hooks ===
   const {
@@ -366,7 +376,11 @@ export default function Home() {
   }, [selectedParticle, carouselParticle]);
 
   // 使用 TanStack Query 获取帖子数据
-  const { data: currentPost, refetch: refetchPost } = useQuery({
+  const {
+    data: currentPost,
+    refetch: refetchPost,
+    isLoading: isPostLoading,
+  } = useQuery({
     queryKey: ["post", currentParticleText],
     queryFn: async () => {
       if (!currentParticleText) return null;
@@ -391,6 +405,15 @@ export default function Home() {
     staleTime: 10000,
     refetchInterval: 30000,
   });
+
+  // 监听加载状态，显示顶部进度条
+  useEffect(() => {
+    if (isPostLoading) {
+      startProgress();
+    } else {
+      stopProgress();
+    }
+  }, [isPostLoading]);
 
   // === Handlers ===
 
@@ -836,6 +859,7 @@ export default function Home() {
                   }}
                   userName={currentPost?.user?.nickname}
                   voiceLabel={t.voiceFromNebula}
+                  isLoading={isPostLoading}
                 />
               </div>
             </div>
@@ -908,8 +932,44 @@ export default function Home() {
             setShowCommentPanel(false);
             setCommentPanelPost(null);
             setCarouselPausedUntil(0);
+
+            // 导航回退逻辑
+            if (previousPanel === "profile") {
+              setShowProfilePanel(true);
+              setPreviousPanel(null);
+            } else if (previousPanel === "user-profile" && viewingUser) {
+              setShowUserProfilePanel(true);
+              setPreviousPanel(null);
+            }
           }}
           onUserRequired={() => setShowUserSetup(true)}
+          onPostClick={(post) => {
+            setCommentPanelPost(post);
+          }}
+          onUserClick={(user) => {
+            setViewingUser(user);
+            setShowUserProfilePanel(true);
+            // 如果是从评论面板打开用户主页，不需要关闭评论面板，而是叠加？
+            // 或者关闭评论面板，记录状态？
+            // 这里选择：关闭评论面板，记录 previousPanel 为 null (因为是从评论面板进入的，回退应该回到评论面板？)
+            // 不，通常逻辑是：评论 -> 用户主页 -> 评论(新) -> 关闭 -> 用户主页 -> 关闭 -> 评论(旧)
+            // 这需要栈。为了简化，我们假设：
+            // 评论 -> 用户主页：关闭评论面板，打开用户主页。
+            // 用户主页 -> 评论(新)：关闭用户主页，打开评论面板(新)，记录 previousPanel='user-profile'
+            // 评论(新) -> 关闭：打开用户主页。
+            // 用户主页 -> 关闭：回到哪里？
+            // 如果是从评论面板来的，应该回到评论面板(旧)。
+            // 这太复杂了。
+            // 简化逻辑：
+            // 评论 -> 用户主页：直接覆盖。
+            // 用户主页 -> 关闭：回到场景。
+            // 除非我们记录了来源。
+
+            // 当前实现：
+            // 评论 -> 用户主页
+            setShowCommentPanel(false);
+            // 我们不记录 previousPanel，因为用户主页关闭后通常回到场景
+          }}
           language={language}
         />
       )}
@@ -937,6 +997,16 @@ export default function Home() {
               setIsProfileClosing(false);
             }, 300);
           }}
+          onPostClick={(post) => {
+            console.log("Page: onPostClick received", post.id);
+            // 记录来源
+            setPreviousPanel("profile");
+            // 关闭 Profile 面板
+            setShowProfilePanel(false);
+            // 打开评论面板
+            setCommentPanelPost(post);
+            setShowCommentPanel(true);
+          }}
           onLogout={() => {
             setIsProfileClosing(true);
             setTimeout(() => {
@@ -947,6 +1017,33 @@ export default function Home() {
           }}
           language={language}
           isClosing={isProfileClosing}
+        />
+      )}
+
+      {/* User Profile 面板 (查看他人) */}
+      {showUserProfilePanel && viewingUser && (
+        <UserProfilePanel
+          user={viewingUser}
+          onClose={() => {
+            setIsUserProfileClosing(true);
+            setTimeout(() => {
+              setShowUserProfilePanel(false);
+              setIsUserProfileClosing(false);
+              // 如果是从评论区进来的，这里关闭后就回到场景了
+              // 如果需要回到评论区，需要更复杂的栈管理
+            }, 300);
+          }}
+          onPostClick={(post) => {
+            // 记录来源
+            setPreviousPanel("user-profile");
+            // 关闭 User Profile 面板
+            setShowUserProfilePanel(false);
+            // 打开评论面板
+            setCommentPanelPost({ ...post, user: viewingUser });
+            setShowCommentPanel(true);
+          }}
+          language={language}
+          isClosing={isUserProfileClosing}
         />
       )}
     </>

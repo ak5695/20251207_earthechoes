@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase, Post, Comment, User, Like } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import UserProfilePanel from "./UserProfilePanel";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 // =============================================
 // Types
@@ -23,6 +24,8 @@ interface CommentPanelProps {
   currentUser: User | null;
   onClose: () => void;
   onUserRequired: () => void;
+  onPostClick?: (post: PostWithUser) => void;
+  onUserClick?: (user: User) => void;
   language: string;
 }
 
@@ -307,7 +310,10 @@ function CommentItem({
           </span>
 
           <button
-            onClick={() => onLike(comment.id)}
+            onClick={() => {
+              triggerHapticFeedback();
+              onLike(comment.id);
+            }}
             className={`flex items-center gap-1 text-xs transition-colors btn-interactive ${
               isLiked ? "text-red-400" : "text-white/40 hover:text-white/60"
             }`}
@@ -329,7 +335,10 @@ function CommentItem({
           </button>
 
           <button
-            onClick={() => onReply(comment)}
+            onClick={() => {
+              triggerHapticFeedback();
+              onReply(comment);
+            }}
             className="text-white/40 hover:text-white/60 text-xs transition-colors btn-interactive"
           >
             {t.reply}
@@ -340,7 +349,10 @@ function CommentItem({
         {comment.replies && comment.replies.length > 0 && !isReply && (
           <div className="mt-2">
             <button
-              onClick={() => setShowReplies(!showReplies)}
+              onClick={() => {
+                triggerHapticFeedback();
+                setShowReplies(!showReplies);
+              }}
               className="text-blue-400 text-xs hover:text-blue-300 transition-colors btn-interactive"
             >
               {showReplies
@@ -380,6 +392,8 @@ export default function CommentPanel({
   currentUser,
   onClose,
   onUserRequired,
+  onPostClick,
+  onUserClick,
   language,
 }: CommentPanelProps) {
   const t = translations[language] || translations.en;
@@ -399,10 +413,18 @@ export default function CommentPanel({
   const [isProfileClosing, setIsProfileClosing] = useState(false);
 
   // 处理查看用户资料
-  const handleViewProfile = useCallback((user: User) => {
-    setViewingUser(user);
-    setIsProfileClosing(false);
-  }, []);
+  const handleViewProfile = useCallback(
+    (user: User) => {
+      triggerHapticFeedback();
+      if (onUserClick) {
+        onUserClick(user);
+      } else {
+        setViewingUser(user);
+        setIsProfileClosing(false);
+      }
+    },
+    [onUserClick]
+  );
 
   // 关闭用户资料面板
   const handleCloseProfile = useCallback(() => {
@@ -737,7 +759,10 @@ export default function CommentPanel({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter"
-        onClick={onClose}
+        onClick={() => {
+          triggerHapticFeedback();
+          onClose();
+        }}
       />
 
       {/* Panel */}
@@ -758,7 +783,10 @@ export default function CommentPanel({
             </TypingAnimation>
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => {
+              triggerHapticFeedback();
+              onClose();
+            }}
             className="text-white/60 hover:text-white transition-colors btn-icon"
           >
             <svg
@@ -811,7 +839,10 @@ export default function CommentPanel({
                   className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-white/10 transition-colors btn-interactive ${
                     liked ? "text-pink-400" : "text-white/40"
                   }`}
-                  onClick={handleLikePost}
+                  onClick={() => {
+                    triggerHapticFeedback();
+                    handleLikePost();
+                  }}
                   disabled={likeLoading}
                 >
                   <svg
@@ -844,7 +875,10 @@ export default function CommentPanel({
           {(["recommend", "hot", "new"] as SortType[]).map((sort) => (
             <button
               key={sort}
-              onClick={() => setSortType(sort)}
+              onClick={() => {
+                triggerHapticFeedback();
+                setSortType(sort);
+              }}
               className={`text-sm transition-colors ${
                 sortType === sort
                   ? "text-white font-medium"
@@ -891,7 +925,10 @@ export default function CommentPanel({
                 {replyingTo.user.nickname}
               </span>
               <button
-                onClick={() => setReplyingTo(null)}
+                onClick={() => {
+                  triggerHapticFeedback();
+                  setReplyingTo(null);
+                }}
                 className="text-white/40 hover:text-white/60"
               >
                 <svg
@@ -926,7 +963,10 @@ export default function CommentPanel({
                 />
 
                 <button
-                  onClick={handleSend}
+                  onClick={() => {
+                    triggerHapticFeedback();
+                    handleSend();
+                  }}
                   disabled={!inputText.trim() || sending}
                   className="text-blue-400 disabled:text-white/20 text-sm font-medium transition-colors btn-interactive"
                 >
@@ -935,7 +975,10 @@ export default function CommentPanel({
               </div>
             ) : (
               <button
-                onClick={onUserRequired}
+                onClick={() => {
+                  triggerHapticFeedback();
+                  onUserRequired();
+                }}
                 className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 rounded-full px-4 py-3 transition-colors cursor-pointer btn-interactive"
               >
                 <span className="text-white/60 text-sm">
@@ -960,11 +1003,19 @@ export default function CommentPanel({
         </div>
       </div>
 
-      {/* User Profile Panel */}
-      {viewingUser && (
+      {/* User Profile Panel - Only render if onUserClick is NOT provided (legacy mode) */}
+      {viewingUser && !onUserClick && (
         <UserProfilePanel
           user={viewingUser}
           onClose={handleCloseProfile}
+          onPostClick={(clickedPost) => {
+            // Close profile panel
+            handleCloseProfile();
+            // Notify parent to switch post
+            if (onPostClick) {
+              onPostClick({ ...clickedPost, user: viewingUser });
+            }
+          }}
           language={language}
           isClosing={isProfileClosing}
         />

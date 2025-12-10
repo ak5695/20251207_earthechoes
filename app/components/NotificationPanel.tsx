@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Notification } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { triggerHapticFeedback } from "../utils/haptics";
 
 interface NotificationPanelProps {
   currentUser: User | null;
@@ -268,7 +269,10 @@ export default function NotificationPanel({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter"
-        onClick={onClose}
+        onClick={() => {
+          triggerHapticFeedback();
+          onClose();
+        }}
       />
 
       {/* Panel */}
@@ -290,13 +294,19 @@ export default function NotificationPanel({
           </h2>
           <div className="flex items-center gap-4">
             <button
-              onClick={handleMarkAllRead}
+              onClick={() => {
+                triggerHapticFeedback();
+                handleMarkAllRead();
+              }}
               className="text-blue-400 text-sm hover:text-blue-300 transition-colors btn-interactive"
             >
               {t.markAllRead}
             </button>
             <button
-              onClick={onClose}
+              onClick={() => {
+                triggerHapticFeedback();
+                onClose();
+              }}
               className="text-white/60 hover:text-white transition-colors btn-icon"
             >
               <svg
