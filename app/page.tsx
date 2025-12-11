@@ -1037,6 +1037,9 @@ export default function Home() {
               setIsProfileClosing(false);
             }, 300);
           }}
+          onUpdateUser={(updatedUser) => {
+            setCurrentUser(updatedUser);
+          }}
           language={language}
           isClosing={isProfileClosing}
         />

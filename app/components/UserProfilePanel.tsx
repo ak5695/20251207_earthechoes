@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
+import { GeneratedAvatar } from "@/components/generated-avatar";
 import { X, Heart, MessageCircle } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { triggerHapticFeedback } from "../utils/haptics";
@@ -182,12 +183,7 @@ export default function UserProfilePanel({
 
           {/* Avatar and User Info */}
           <div className="flex items-center gap-4">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-medium"
-              style={{ backgroundColor: bgColor }}
-            >
-              {user.nickname.charAt(0).toUpperCase()}
-            </div>
+            <GeneratedAvatar seed={user.nickname} className="w-16 h-16" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-white text-xl font-medium">

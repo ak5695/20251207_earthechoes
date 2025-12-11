@@ -776,9 +776,9 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
           );
           raycasterRef.current.params.Points.threshold = RAYCASTER_THRESHOLD;
 
-          console.log(
+          /* console.log(
             `[Click] Checking ${settledMeshesRef.current.length} settled meshes`
-          );
+          ); */
 
           // 检测已定居的粒子 mesh
           if (settledMeshesRef.current.length > 0) {
@@ -1024,7 +1024,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             if (!isShapePaused) {
               shapeTimerRef.current += delta;
               // debug
-              if (
+              /* if (
                 Math.floor(shapeTimerRef.current) !==
                 Math.floor(shapeTimerRef.current - delta)
               ) {
@@ -1033,14 +1033,14 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                     2
                   )}s`
                 );
-              }
+              } */
             } else {
               // debug
-              console.log(
+              /* console.log(
                 `[ThreeScene] shapeTimer paused at ${shapeTimerRef.current.toFixed(
                   2
                 )}s`
-              );
+              ); */
             }
             // 更新稳定期计时器
             if (shapeStabilizationTimerRef.current > 0) {
@@ -1055,10 +1055,10 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
               shapeTimerRef.current >= SHAPE_DURATION &&
               shapeTransitionTargetRef.current === shapeModeRef.current
             ) {
-              console.log("[ThreeScene] Triggering shape transition", {
+              /* console.log("[ThreeScene] Triggering shape transition", {
                 shapeTimer: shapeTimerRef.current.toFixed(2),
                 threshold: SHAPE_DURATION,
-              });
+              }); */
 
               shapeTimerRef.current = 0;
               const shapes: ShapeMode[] = ["nebula", "river", "wave", "atomic"];
@@ -1459,7 +1459,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             clock.elapsedTime - lastMeteorTimeRef.current >
             METEOR_CONFIG.INTERVAL
           ) {
-            console.log("Meteor appeared!");
+            // console.log("Meteor appeared!");
             lastMeteorTimeRef.current = clock.elapsedTime;
             const meteor = createMeteor(clock.elapsedTime);
             scene.add(meteor);
@@ -1514,13 +1514,13 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
 
                   // Debug: Check if targetPos is suspiciously close to origin
                   if (targetPos.length() < 0.1) {
-                    console.warn(
+                    /* console.warn(
                       `[Highlight] Settled particle ${highlightId} is at origin!`,
                       {
                         localPos: settled.mesh.position.clone(),
                         parent: settled.mesh.parent?.type,
                       }
-                    );
+                    ); */
                   }
                 }
 
@@ -1844,7 +1844,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                 p.sprite.scale.set(glowScale, glowScale, 1);
 
                 // 每0.5秒输出一次闪烁中的位置
-                if (
+                /* if (
                   Math.floor(p.phaseProgress * 2) !==
                   Math.floor((p.phaseProgress - delta) * 2)
                 ) {
@@ -1854,7 +1854,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                     targetPos: p.targetPos?.clone(),
                     progress: p.phaseProgress.toFixed(2),
                   });
-                }
+                } */
 
                 // 移除 floatY - 不再需要，因为粒子现在跟随轨道/保持在目标位置
 
@@ -1873,7 +1873,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                     particleId: p.id,
                   };
 
-                  console.log(
+                  /* console.log(
                     `[Settle Complete] Particle ${p.id} final state:`,
                     {
                       finalLocalPos: p.mesh.position.clone(),
@@ -1886,7 +1886,7 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
                         p.mesh
                       ),
                     }
-                  );
+                  ); */
 
                   settledParticlesRef.current.push({
                     id: p.id,

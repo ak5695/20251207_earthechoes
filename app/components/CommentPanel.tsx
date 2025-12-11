@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase, Post, Comment, User, Like } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import UserProfilePanel from "./UserProfilePanel";
+import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
 
 // =============================================
@@ -204,31 +205,15 @@ function Avatar({
   size?: number;
   onClick?: () => void;
 }) {
-  const bgColor = generateRandomAvatar(user.id);
-
   return (
     <div
-      className={`rounded-full flex items-center justify-center text-white font-medium overflow-hidden ${
-        onClick ? "cursor-pointer btn-icon" : ""
-      }`}
-      style={{
-        width: size,
-        height: size,
-        minWidth: size,
-        backgroundColor: user.avatar_url ? "transparent" : bgColor,
-        fontSize: size * 0.4,
-      }}
       onClick={onClick}
+      className={
+        onClick ? "cursor-pointer btn-icon inline-block" : "inline-block"
+      }
+      style={{ width: size, height: size }}
     >
-      {user.avatar_url ? (
-        <img
-          src={user.avatar_url}
-          alt={user.nickname}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        user.nickname.charAt(0).toUpperCase()
-      )}
+      <GeneratedAvatar seed={user.nickname} className="w-full h-full" />
     </div>
   );
 }

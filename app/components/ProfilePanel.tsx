@@ -2,8 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
-import { X, Heart, MessageCircle, Trash2, LogOut } from "lucide-react";
+import {
+  X,
+  Heart,
+  MessageCircle,
+  Trash2,
+  LogOut,
+  Edit2,
+  Check,
+} from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
 
 interface ProfilePanelProps {
@@ -11,6 +20,7 @@ interface ProfilePanelProps {
   onClose: () => void;
   onLogout: () => void;
   onPostClick: (post: Post & { user: User }) => void;
+  onUpdateUser: (user: User) => void;
   language: string;
   isClosing?: boolean;
 }
@@ -130,6 +140,7 @@ export default function ProfilePanel({
   onClose,
   onLogout,
   onPostClick,
+  onUpdateUser,
   language,
   isClosing = false,
 }: ProfilePanelProps) {
@@ -141,6 +152,12 @@ export default function ProfilePanel({
   const [totalComments, setTotalComments] = useState(0);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editNickname, setEditNickname] = useState(currentUser.nickname);
+  const [editRegion, setEditRegion] = useState(currentUser.region || "");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // 入场动画
   useEffect(() => {
@@ -213,6 +230,36 @@ export default function ProfilePanel({
     fetchUserPosts();
   }, [fetchUserPosts]);
 
+  const handleUpdateProfile = async () => {
+    if (!editNickname.trim()) return;
+
+    setIsUpdating(true);
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .update({
+          nickname: editNickname.trim(),
+          region: editRegion.trim() || null,
+        })
+        .eq("id", currentUser.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        onUpdateUser(data);
+        localStorage.setItem("earthechoes_user", JSON.stringify(data));
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Failed to update profile");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleDeletePost = async (postId: string) => {
     if (!confirm(t.deleteConfirm)) return;
 
@@ -277,55 +324,113 @@ export default function ProfilePanel({
 
           {/* Avatar and User Info */}
           <div className="flex items-center gap-4">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-medium"
-              style={{ backgroundColor: bgColor }}
-            >
-              {currentUser.nickname.charAt(0).toUpperCase()}
-            </div>
-            <div>
+            <GeneratedAvatar
+              seed={currentUser.nickname}
+              className="w-16 h-16"
+            />
+            <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h2 className="text-white text-xl font-medium">
-                  <TypingAnimation
-                    duration={80}
-                    delay={200}
-                    showCursor={false}
-                    className="text-white text-xl font-medium"
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editNickname}
+                    onChange={(e) => setEditNickname(e.target.value)}
+                    className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-lg font-medium w-full focus:outline-none focus:border-white/40"
+                    placeholder="Nickname"
+                    maxLength={20}
+                  />
+                ) : (
+                  <h2 className="text-white text-xl font-medium">
+                    <TypingAnimation
+                      duration={80}
+                      delay={200}
+                      showCursor={false}
+                      className="text-white text-xl font-medium"
+                    >
+                      {currentUser.nickname}
+                    </TypingAnimation>
+                  </h2>
+                )}
+
+                {isEditing ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleUpdateProfile}
+                      disabled={isUpdating}
+                      className="p-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-full transition-colors btn-icon"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditNickname(currentUser.nickname);
+                        setEditRegion(currentUser.region || "");
+                      }}
+                      className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-full transition-colors btn-icon"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsEditing(true);
+                      setEditNickname(currentUser.nickname);
+                      setEditRegion(currentUser.region || "");
+                    }}
+                    className="p-1.5 text-white/40 hover:text-white/80 transition-colors btn-icon"
                   >
-                    {currentUser.nickname}
-                  </TypingAnimation>
-                </h2>
-                {currentUser.is_vip && (
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                {currentUser.is_vip && !isEditing && (
                   <span className="px-1.5 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
                     {t.vip}
                   </span>
                 )}
               </div>
-              {currentUser.region && (
-                <p className="text-white/50 text-sm mt-1">
+
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editRegion}
+                  onChange={(e) => setEditRegion(e.target.value)}
+                  className="mt-2 bg-white/10 border border-white/20 rounded px-2 py-1 text-white/80 text-sm w-full focus:outline-none focus:border-white/40"
+                  placeholder={t.region}
+                  maxLength={50}
+                />
+              ) : (
+                currentUser.region && (
+                  <p className="text-white/50 text-sm mt-1">
+                    <TypingAnimation
+                      duration={60}
+                      delay={400}
+                      showCursor={false}
+                      className="text-white/50 text-sm"
+                    >
+                      {`${t.region}: ${currentUser.region}`}
+                    </TypingAnimation>
+                  </p>
+                )
+              )}
+
+              {!isEditing && (
+                <p className="text-white/40 text-xs mt-1">
                   <TypingAnimation
-                    duration={60}
-                    delay={400}
-                    showCursor={false}
-                    className="text-white/50 text-sm"
+                    duration={50}
+                    delay={600}
+                    showCursor={true}
+                    blinkCursor={true}
+                    className="text-white/40 text-xs"
                   >
-                    {`${t.region}: ${currentUser.region}`}
+                    {`${t.joinedAt} ${new Date(
+                      currentUser.created_at
+                    ).toLocaleDateString()}`}
                   </TypingAnimation>
                 </p>
               )}
-              <p className="text-white/40 text-xs mt-1">
-                <TypingAnimation
-                  duration={50}
-                  delay={600}
-                  showCursor={true}
-                  blinkCursor={true}
-                  className="text-white/40 text-xs"
-                >
-                  {`${t.joinedAt} ${new Date(
-                    currentUser.created_at
-                  ).toLocaleDateString()}`}
-                </TypingAnimation>
-              </p>
             </div>
           </div>
 

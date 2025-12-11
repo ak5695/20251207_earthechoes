@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase, User, Notification } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
 
 interface NotificationPanelProps {
@@ -122,28 +123,9 @@ function generateRandomAvatar(seed: string): string {
 }
 
 function Avatar({ user, size = 40 }: { user: User; size?: number }) {
-  const bgColor = generateRandomAvatar(user.id);
-
   return (
-    <div
-      className="rounded-full flex items-center justify-center text-white font-medium overflow-hidden"
-      style={{
-        width: size,
-        height: size,
-        minWidth: size,
-        backgroundColor: user.avatar_url ? "transparent" : bgColor,
-        fontSize: size * 0.4,
-      }}
-    >
-      {user.avatar_url ? (
-        <img
-          src={user.avatar_url}
-          alt={user.nickname}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        user.nickname.charAt(0).toUpperCase()
-      )}
+    <div style={{ width: size, height: size }}>
+      <GeneratedAvatar seed={user.nickname} className="w-full h-full" />
     </div>
   );
 }

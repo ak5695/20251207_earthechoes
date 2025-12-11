@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell } from "lucide-react";
+import { GeneratedAvatar } from "@/components/generated-avatar";
 import type { User } from "@/lib/supabase";
 import { triggerHapticFeedback } from "../utils/haptics";
 
@@ -89,12 +90,13 @@ export default function Header({
               onOpenUserSetup();
             }
           }}
-          className="w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon"
+          className="w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon p-0"
         >
           {currentUser ? (
-            <span className="text-white font-medium text-sm">
-              {currentUser.nickname.charAt(0).toUpperCase()}
-            </span>
+            <GeneratedAvatar
+              seed={currentUser.nickname}
+              className="w-[38px] h-[38px] cursor-pointer"
+            />
           ) : (
             <svg
               className="w-5 h-5 text-white/60"
