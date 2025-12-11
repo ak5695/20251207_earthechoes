@@ -35,6 +35,11 @@ const translations: Record<string, Record<string, string>> = {
     welcomeBack: "欢迎回来",
     loginSubtitle: "使用邮箱登录",
     selectLanguage: "选择语言",
+    agreeToPolicy: "我已阅读并同意",
+    terms: "使用条款",
+    and: "和",
+    privacy: "隐私政策",
+    pleaseAgree: "请先同意使用条款和隐私政策",
   },
   en: {
     welcomeTitle: "Create Your Identity",
@@ -55,6 +60,11 @@ const translations: Record<string, Record<string, string>> = {
     welcomeBack: "Welcome Back",
     loginSubtitle: "Login with email",
     selectLanguage: "Language",
+    agreeToPolicy: "I agree to the",
+    terms: "Terms of Use",
+    and: "and",
+    privacy: "Privacy Policy",
+    pleaseAgree: "Please agree to the Terms of Use and Privacy Policy",
   },
   ja: {
     welcomeTitle: "アイデンティティを作成",
@@ -75,6 +85,11 @@ const translations: Record<string, Record<string, string>> = {
     welcomeBack: "おかえりなさい",
     loginSubtitle: "メールでログイン",
     selectLanguage: "言語",
+    agreeToPolicy: "に同意します",
+    terms: "利用規約",
+    and: "と",
+    privacy: "プライバシーポリシー",
+    pleaseAgree: "利用規約とプライバシーポリシーに同意してください",
   },
   ko: {
     welcomeTitle: "정체성을 만드세요",
@@ -95,6 +110,11 @@ const translations: Record<string, Record<string, string>> = {
     welcomeBack: "다시 오신 것을 환영합니다",
     loginSubtitle: "이메일로 로그인",
     selectLanguage: "언어",
+    agreeToPolicy: "에 동의합니다",
+    terms: "이용 약관",
+    and: "및",
+    privacy: "개인정보 처리방침",
+    pleaseAgree: "이용 약관 및 개인정보 처리방침에 동의해주세요",
   },
   fr: {
     welcomeTitle: "Créez votre identité",
@@ -209,6 +229,7 @@ export default function UserSetupModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [userLanguage, setUserLanguage] = useState(language);
+  const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -304,6 +325,10 @@ export default function UserSetupModal({
     }
     if (password.trim().length < 6) {
       setError("密码至少需要6个字符");
+      return;
+    }
+    if (!agreedToPolicy) {
+      setError(t.pleaseAgree);
       return;
     }
     setLoading(true);
@@ -564,6 +589,28 @@ export default function UserSetupModal({
                   className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
                 />
               </div>
+
+              {/* Policy Agreement */}
+              <div className="flex items-start gap-2 pt-2">
+                <div className="flex items-center h-5">
+                  <input
+                    id="policy-agreement"
+                    type="checkbox"
+                    checked={agreedToPolicy}
+                    onChange={(e) => setAgreedToPolicy(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-800/50 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900"
+                  />
+                </div>
+                <label
+                  htmlFor="policy-agreement"
+                  className="text-xs text-gray-400 leading-5"
+                >
+                  {t.agreeToPolicy}{" "}
+                  <span className="text-indigo-400">{t.terms}</span> {t.and}{" "}
+                  <span className="text-indigo-400">{t.privacy}</span>
+                </label>
+              </div>
+
               {error && (
                 <p className="text-sm text-red-400 text-center">{error}</p>
               )}

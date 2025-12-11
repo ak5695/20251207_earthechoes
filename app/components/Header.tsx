@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import { Bell, CircleAlert } from "lucide-react";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import type { User } from "@/lib/supabase";
 import { triggerHapticFeedback } from "../utils/haptics";
@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
   onOpenUserSetup: () => void;
+  onOpenInfo: () => void;
 }
 
 export default function Header({
@@ -25,6 +26,7 @@ export default function Header({
   onOpenNotifications,
   onOpenProfile,
   onOpenUserSetup,
+  onOpenInfo,
 }: HeaderProps) {
   return (
     <div className="flex justify-between items-start pointer-events-auto">
@@ -61,7 +63,7 @@ export default function Header({
       </div>
 
       {/* 右侧 - 通知和用户 */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3">
         {/* 通知按钮 */}
         {currentUser && (
           <button
@@ -80,39 +82,52 @@ export default function Header({
           </button>
         )}
 
-        {/* 用户头像/登录按钮 */}
-        <button
-          onClick={() => {
-            triggerHapticFeedback();
-            if (currentUser) {
-              onOpenProfile();
-            } else {
-              onOpenUserSetup();
-            }
-          }}
-          className="w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon p-0"
-        >
-          {currentUser ? (
-            <GeneratedAvatar
-              seed={currentUser.nickname}
-              className="w-[38px] h-[38px] cursor-pointer"
-            />
-          ) : (
-            <svg
-              className="w-5 h-5 text-white/60"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        <div className="flex flex-col items-center gap-4">
+          {/* 用户头像/登录按钮 */}
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              if (currentUser) {
+                onOpenProfile();
+              } else {
+                onOpenUserSetup();
+              }
+            }}
+            className="w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon p-0"
+          >
+            {currentUser ? (
+              <GeneratedAvatar
+                seed={currentUser.nickname}
+                className="w-[38px] h-[38px] cursor-pointer"
               />
-            </svg>
-          )}
-        </button>
+            ) : (
+              <svg
+                className="w-5 h-5 text-white/60"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            )}
+          </button>
+
+          {/* 信息/规则按钮 */}
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              onOpenInfo();
+            }}
+            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+          >
+            <CircleAlert className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </div>
   );

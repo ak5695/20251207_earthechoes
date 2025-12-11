@@ -31,6 +31,7 @@ import Header from "./components/Header";
 import WelcomeModal from "./components/WelcomeModal";
 import InputArea from "./components/InputArea";
 import LoadingScreen from "./components/LoadingScreen";
+import InfoPanel from "./components/InfoPanel";
 
 import type {
   ThreeSceneHandle,
@@ -98,6 +99,8 @@ export default function Home() {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [isProfileClosing, setIsProfileClosing] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [isInfoClosing, setIsInfoClosing] = useState(false);
 
   // === 导航状态 ===
   const [previousPanel, setPreviousPanel] = useState<
@@ -827,6 +830,7 @@ export default function Home() {
           onOpenNotifications={() => setShowNotificationPanel(true)}
           onOpenProfile={() => setShowProfilePanel(true)}
           onOpenUserSetup={() => setShowUserSetup(true)}
+          onOpenInfo={() => setShowInfoPanel(true)}
         />
 
         {/* Center Timer */}
@@ -1042,6 +1046,20 @@ export default function Home() {
           }}
           language={language}
           isClosing={isProfileClosing}
+        />
+      )}
+
+      {/* Info Panel */}
+      {showInfoPanel && (
+        <InfoPanel
+          isClosing={isInfoClosing}
+          onClose={() => {
+            setIsInfoClosing(true);
+            setTimeout(() => {
+              setShowInfoPanel(false);
+              setIsInfoClosing(false);
+            }, 300);
+          }}
         />
       )}
 
