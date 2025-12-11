@@ -12,6 +12,7 @@ import { triggerHapticFeedback } from "../utils/haptics";
 interface UserSetupModalProps {
   onComplete: (user: User) => void;
   onClose: () => void;
+  onOpenPolicy?: (view: "terms" | "privacy") => void;
   language: string;
 }
 
@@ -220,6 +221,7 @@ const randomNicknames = {
 export default function UserSetupModal({
   onComplete,
   onClose,
+  onOpenPolicy,
   language,
 }: UserSetupModalProps) {
   const t = translations[language] || translations.en;
@@ -606,8 +608,25 @@ export default function UserSetupModal({
                   className="text-xs text-gray-400 leading-5"
                 >
                   {t.agreeToPolicy}{" "}
-                  <span className="text-indigo-400">{t.terms}</span> {t.and}{" "}
-                  <span className="text-indigo-400">{t.privacy}</span>
+                  <span
+                    className="text-indigo-400 cursor-pointer hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onOpenPolicy?.("terms");
+                    }}
+                  >
+                    {t.terms}
+                  </span>{" "}
+                  {t.and}{" "}
+                  <span
+                    className="text-indigo-400 cursor-pointer hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onOpenPolicy?.("privacy");
+                    }}
+                  >
+                    {t.privacy}
+                  </span>
                 </label>
               </div>
 

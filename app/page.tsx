@@ -31,7 +31,7 @@ import Header from "./components/Header";
 import WelcomeModal from "./components/WelcomeModal";
 import InputArea from "./components/InputArea";
 import LoadingScreen from "./components/LoadingScreen";
-import InfoPanel from "./components/InfoPanel";
+import InfoPanel, { View } from "./components/InfoPanel";
 
 import type {
   ThreeSceneHandle,
@@ -100,6 +100,8 @@ export default function Home() {
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [isProfileClosing, setIsProfileClosing] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [infoPanelInitialView, setInfoPanelInitialView] =
+    useState<View>("main");
   const [isInfoClosing, setIsInfoClosing] = useState(false);
 
   // === 导航状态 ===
@@ -943,6 +945,10 @@ export default function Home() {
             setShowUserSetup(false);
           }}
           onClose={() => setShowUserSetup(false)}
+          onOpenPolicy={(view) => {
+            setInfoPanelInitialView(view);
+            setShowInfoPanel(true);
+          }}
           language={language}
         />
       )}
@@ -1053,11 +1059,13 @@ export default function Home() {
       {showInfoPanel && (
         <InfoPanel
           isClosing={isInfoClosing}
+          initialView={infoPanelInitialView}
           onClose={() => {
             setIsInfoClosing(true);
             setTimeout(() => {
               setShowInfoPanel(false);
               setIsInfoClosing(false);
+              setInfoPanelInitialView("main"); // Reset to main on close
             }, 300);
           }}
         />

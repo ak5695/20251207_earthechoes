@@ -19,9 +19,10 @@ import { triggerHapticFeedback } from "../utils/haptics";
 interface InfoPanelProps {
   onClose: () => void;
   isClosing?: boolean;
+  initialView?: View;
 }
 
-type View =
+export type View =
   | "main"
   | "contact"
   | "terms"
@@ -33,8 +34,9 @@ type View =
 export default function InfoPanel({
   onClose,
   isClosing = false,
+  initialView = "main",
 }: InfoPanelProps) {
-  const [currentView, setCurrentView] = useState<View>("main");
+  const [currentView, setCurrentView] = useState<View>(initialView);
 
   const renderContent = () => {
     switch (currentView) {
@@ -43,6 +45,7 @@ export default function InfoPanel({
           <DetailView
             title="联系方式"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-6">
                 <p className="text-white/80 text-sm leading-relaxed">
@@ -74,6 +77,7 @@ export default function InfoPanel({
           <DetailView
             title="使用条款"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-4 text-white/80 text-sm leading-relaxed">
                 <p>最后更新日期：2025年12月11日</p>
@@ -101,6 +105,7 @@ export default function InfoPanel({
           <DetailView
             title="隐私政策"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-4 text-white/80 text-sm leading-relaxed">
                 <p>
@@ -130,6 +135,7 @@ export default function InfoPanel({
           <DetailView
             title="退款政策"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-4 text-white/80 text-sm leading-relaxed">
                 <p>Echoes Of The Stars 目前提供的所有基础服务均为免费。</p>
@@ -157,6 +163,7 @@ export default function InfoPanel({
           <DetailView
             title="建议反馈"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-6">
                 <p className="text-white/80 text-sm leading-relaxed">
@@ -183,6 +190,7 @@ export default function InfoPanel({
           <DetailView
             title="错误报告"
             onBack={() => setCurrentView("main")}
+            onClose={onClose}
             content={
               <div className="space-y-6">
                 <p className="text-white/80 text-sm leading-relaxed">
@@ -358,24 +366,37 @@ function DetailView({
   title,
   content,
   onBack,
+  onClose,
 }: {
   title: string;
   content: React.ReactNode;
   onBack: () => void;
+  onClose: () => void;
 }) {
   return (
     <>
-      <div className="relative pt-6 pb-4 px-6 border-b border-white/10 flex items-center gap-4">
+      <div className="relative pt-6 pb-4 px-6 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              onBack();
+            }}
+            className="text-white/60 hover:text-white transition-colors btn-icon -ml-2"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <h2 className="text-white text-xl font-medium">{title}</h2>
+        </div>
         <button
           onClick={() => {
             triggerHapticFeedback();
-            onBack();
+            onClose();
           }}
-          className="text-white/60 hover:text-white transition-colors btn-icon -ml-2"
+          className="text-white/60 hover:text-white transition-colors btn-icon"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <X className="w-6 h-6" />
         </button>
-        <h2 className="text-white text-xl font-medium">{title}</h2>
       </div>
       <div className="flex-1 overflow-y-auto px-6 py-6">{content}</div>
     </>
