@@ -432,7 +432,7 @@ export default function UserSetupModal({
             <select
               value={userLanguage}
               onChange={(e) => setUserLanguage(e.target.value)}
-              className="w-full h-10 px-3 rounded-md bg-gray-800/50 border border-gray-600 text-white text-sm transition-colors"
+              className="w-full h-10 px-3 rounded-md bg-gray-800/50 border border-gray-600 text-white text-sm transition-colors cursor-pointer"
             >
               <option value="zh">中文</option>
               <option value="en">English</option>

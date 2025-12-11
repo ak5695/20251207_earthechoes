@@ -758,7 +758,7 @@ export default function CommentPanel({
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter cursor-pointer"
         onClick={() => {
           triggerHapticFeedback();
           onClose();
@@ -879,7 +879,7 @@ export default function CommentPanel({
                 triggerHapticFeedback();
                 setSortType(sort);
               }}
-              className={`text-sm transition-colors ${
+              className={`text-sm transition-colors cursor-pointer ${
                 sortType === sort
                   ? "text-white font-medium"
                   : "text-white/50 hover:text-white/70"
@@ -929,7 +929,7 @@ export default function CommentPanel({
                   triggerHapticFeedback();
                   setReplyingTo(null);
                 }}
-                className="text-white/40 hover:text-white/60"
+                className="text-white/40 hover:text-white/60 cursor-pointer"
               >
                 <svg
                   className="w-4 h-4"

@@ -30,6 +30,7 @@ import MoodCard from "./components/MoodCard";
 import Header from "./components/Header";
 import WelcomeModal from "./components/WelcomeModal";
 import InputArea from "./components/InputArea";
+import LoadingScreen from "./components/LoadingScreen";
 
 import type {
   ThreeSceneHandle,
@@ -37,9 +38,10 @@ import type {
   ContributedParticle,
 } from "./components/ThreeScene";
 
-// 动态导入 Three.js 组件，禁用 SSR
+// 动态导入 Three.js 组件，禁用 SSR，使用懒加载
 const ThreeScene = dynamic(() => import("./components/ThreeScene"), {
   ssr: false,
+  loading: () => <div className="fixed inset-0 bg-slate-950" />,
 });
 const ThreeSceneMemo = React.memo(ThreeScene);
 
@@ -58,6 +60,8 @@ export default function Home() {
   const [pendingText, setPendingText] = useState("");
   const [floatAmplitude, setFloatAmplitude] = useState(0.3);
   const [language, setLanguage] = useState<Language>("zh");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSceneReady, setIsSceneReady] = useState(false);
 
   // === 发射消息状态 ===
   const [showLaunchMessage, setShowLaunchMessage] = useState(false);
@@ -420,6 +424,7 @@ export default function Home() {
   // 处理粒子点击
   const handleParticleClick = useCallback((particle: ContributedParticle) => {
     setIsCardClosing(false);
+    setIsCarouselFading(false); // 确保重置轮播淡出状态
     setSelectedParticle(particle);
     setCarouselPausedUntil(Date.now() + 5000);
     setCarouselParticle(null);
@@ -442,7 +447,10 @@ export default function Home() {
       if (currentPost) {
         setCommentPanelPost(currentPost);
         setShowCommentPanel(true);
-        setSelectedParticle(null);
+        // 保持选中状态，以便关闭评论后能返回
+        setSelectedParticle(particle);
+        setIsCardClosing(false); // 确保卡片状态重置
+        setIsCarouselFading(false); // 确保重置轮播淡出状态
         setCarouselParticle(null);
         setIsCarouselVisible(false);
         setCarouselPausedUntil(Infinity);
@@ -731,6 +739,13 @@ export default function Home() {
   // === Render ===
   return (
     <>
+      {isLoading && (
+        <LoadingScreen
+          isReady={isSceneReady}
+          onFinished={() => setIsLoading(false)}
+        />
+      )}
+
       {isClient && (
         <ThreeSceneMemo
           params={paramsRef.current}
@@ -738,6 +753,9 @@ export default function Home() {
           onParticleClick={handleParticleClick}
           selectedParticleId={selectedParticle?.id ?? null}
           language={language}
+          onReady={() => {
+            setIsSceneReady(true);
+          }}
         />
       )}
 
@@ -821,49 +839,51 @@ export default function Home() {
           </div>
 
           {/* 统一的心情卡片 */}
-          {(selectedParticle || (carouselParticle && isCarouselVisible)) && (
-            <div className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow">
-              <div
-                ref={cardRef}
-                className={`pointer-events-auto ${
-                  isCardClosing || isCarouselFading
-                    ? "animate-card-exit"
-                    : "animate-card-enter"
-                }`}
-                onMouseEnter={() => {
-                  if (!selectedParticle && carouselParticle) {
-                    setIsCarouselHovered(true);
-                  }
-                }}
-                onMouseLeave={() => {
-                  setIsCarouselHovered(false);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!selectedParticle && carouselParticle) {
-                    setSelectedParticle(carouselParticle);
-                    setCarouselParticle(null);
-                    setIsCarouselVisible(false);
-                    setCarouselPausedUntil(Date.now() + 5000);
-                  }
-                }}
-              >
-                <MoodCard
-                  key={(selectedParticle || carouselParticle)?.id}
-                  particle={(selectedParticle || carouselParticle)!}
-                  isClosable={!!selectedParticle}
-                  onClose={handleCloseCard}
-                  onClick={() => {
-                    const particle = selectedParticle || carouselParticle;
-                    if (particle) handleOpenComments(particle);
+          {(selectedParticle || (carouselParticle && isCarouselVisible)) &&
+            !showCommentPanel && (
+              <div className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow">
+                <div
+                  ref={cardRef}
+                  className={`pointer-events-auto ${
+                    isCardClosing || isCarouselFading
+                      ? "animate-card-exit"
+                      : "animate-card-enter"
+                  }`}
+                  onMouseEnter={() => {
+                    if (!selectedParticle && carouselParticle) {
+                      setIsCarouselHovered(true);
+                    }
                   }}
-                  userName={currentPost?.user?.nickname}
-                  voiceLabel={t.voiceFromNebula}
-                  isLoading={isPostLoading}
-                />
+                  onMouseLeave={() => {
+                    setIsCarouselHovered(false);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!selectedParticle && carouselParticle) {
+                      setSelectedParticle(carouselParticle);
+                      setCarouselParticle(null);
+                      setIsCarouselVisible(false);
+                      setIsCarouselFading(false); // 确保重置轮播淡出状态
+                      setCarouselPausedUntil(Date.now() + 5000);
+                    }
+                  }}
+                >
+                  <MoodCard
+                    key={(selectedParticle || carouselParticle)?.id}
+                    particle={(selectedParticle || carouselParticle)!}
+                    isClosable={!!selectedParticle}
+                    onClose={handleCloseCard}
+                    onClick={() => {
+                      const particle = selectedParticle || carouselParticle;
+                      if (particle) handleOpenComments(particle);
+                    }}
+                    userName={currentPost?.user?.nickname}
+                    voiceLabel={t.voiceFromNebula}
+                    isLoading={isPostLoading}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         {/* Bottom Input Area */}
@@ -931,7 +951,9 @@ export default function Home() {
           onClose={() => {
             setShowCommentPanel(false);
             setCommentPanelPost(null);
-            setCarouselPausedUntil(0);
+            setIsCardClosing(false); // 确保卡片重新显示时不是关闭状态
+            setIsCarouselFading(false); // 确保卡片重新显示时不是淡出状态
+            setCarouselPausedUntil(Date.now() + 2000); // 给一点缓冲时间
 
             // 导航回退逻辑
             if (previousPanel === "profile") {

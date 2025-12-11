@@ -406,6 +406,7 @@ body {
 
 /* 按钮交互效果 - 缩放和触感 */
 .btn-interactive {
+  cursor: pointer;
   transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     box-shadow 0.15s ease, opacity 0.15s ease;
   will-change: transform;
@@ -463,6 +464,7 @@ body {
 
 /* 发光按钮效果 */
 .btn-glow {
+  cursor: pointer;
   transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     box-shadow 0.2s ease, filter 0.2s ease;
   -webkit-tap-highlight-color: transparent;
@@ -480,6 +482,7 @@ body {
 
 /* 图标按钮特定样式 */
 .btn-icon {
+  cursor: pointer;
   transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94),
     background-color 0.2s ease, color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
@@ -512,6 +515,7 @@ body {
 .btn-close-hint {
   animation: close-btn-blink 1.5s ease-in-out infinite;
   border-radius: 4px;
+  cursor: pointer;
 }
 
 /* 悬浮时停止闪烁,保持动画50%状态的效果 */
@@ -651,4 +655,17 @@ body {
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
   animation: draw-line 1s ease-out forwards;
+}
+
+/* Custom Cursor Global Override */
+a, 
+button, 
+input[type="submit"], 
+input[type="button"], 
+.cursor-pointer,
+.btn-interactive,
+.btn-icon,
+.btn-glow,
+.btn-close-hint {
+  cursor: url('/cursor.svg') 16 16, pointer !important;
 }

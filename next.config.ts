@@ -5,8 +5,12 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
+  swcMinify: true,
   experimental: {
     optimizePackageImports: ["lucide-react", "three"],
+  },
+  images: {
+    formats: ["image/avif", "image/webp"],
   },
 };
 

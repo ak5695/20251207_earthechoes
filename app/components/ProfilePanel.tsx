@@ -241,7 +241,7 @@ export default function ProfilePanel({
     >
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/70 backdrop-blur-md ${
+        className={`absolute inset-0 bg-black/70 backdrop-blur-md cursor-pointer ${
           isClosing ? "animate-backdrop-exit" : "animate-backdrop-enter"
         }`}
         onClick={() => {
