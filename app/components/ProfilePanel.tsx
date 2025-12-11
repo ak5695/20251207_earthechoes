@@ -10,6 +10,9 @@ import {
   LogOut,
   Edit2,
   Check,
+  Mars,
+  Venus,
+  CircleHelp,
 } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -157,6 +160,7 @@ export default function ProfilePanel({
   const [isEditing, setIsEditing] = useState(false);
   const [editNickname, setEditNickname] = useState(currentUser.nickname);
   const [editRegion, setEditRegion] = useState(currentUser.region || "");
+  const [editGender, setEditGender] = useState(currentUser.gender || "unknown");
   const [isUpdating, setIsUpdating] = useState(false);
 
   // 入场动画
@@ -240,6 +244,7 @@ export default function ProfilePanel({
         .update({
           nickname: editNickname.trim(),
           region: editRegion.trim() || null,
+          gender: editGender,
         })
         .eq("id", currentUser.id)
         .select()
@@ -252,9 +257,10 @@ export default function ProfilePanel({
         localStorage.setItem("earthechoes_user", JSON.stringify(data));
         setIsEditing(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating profile:", err);
-      alert("Failed to update profile");
+      console.error("Error details:", JSON.stringify(err, null, 2));
+      alert(`Failed to update profile: ${err.message || "Unknown error"}`);
     } finally {
       setIsUpdating(false);
     }
@@ -310,7 +316,7 @@ export default function ProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-8 pb-6 px-6 border-b border-white/10">
+        <div className="relative pt-4 pb-3 px-6 border-b border-white/10">
           {/* Close button */}
           <button
             onClick={() => {
@@ -331,25 +337,71 @@ export default function ProfilePanel({
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={editNickname}
-                    onChange={(e) => setEditNickname(e.target.value)}
-                    className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-lg font-medium w-full focus:outline-none focus:border-white/40"
-                    placeholder="Nickname"
-                    maxLength={20}
-                  />
+                  <div className="flex flex-col gap-2 w-full">
+                    <input
+                      type="text"
+                      value={editNickname}
+                      onChange={(e) => setEditNickname(e.target.value)}
+                      className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-lg font-medium w-full focus:outline-none focus:border-white/40"
+                      placeholder="Nickname"
+                      maxLength={20}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setEditGender("male")}
+                        className={`p-1.5 rounded ${
+                          editGender === "male"
+                            ? "bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/50"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                        }`}
+                      >
+                        <Mars className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setEditGender("female")}
+                        className={`p-1.5 rounded ${
+                          editGender === "female"
+                            ? "bg-pink-500/20 text-pink-400 ring-1 ring-pink-500/50"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                        }`}
+                      >
+                        <Venus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setEditGender("unknown")}
+                        className={`p-1.5 rounded ${
+                          editGender === "unknown"
+                            ? "bg-gray-500/20 text-gray-400 ring-1 ring-gray-500/50"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                        }`}
+                      >
+                        <CircleHelp className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <h2 className="text-white text-xl font-medium">
-                    <TypingAnimation
-                      duration={80}
-                      delay={200}
-                      showCursor={false}
-                      className="text-white text-xl font-medium"
-                    >
-                      {currentUser.nickname}
-                    </TypingAnimation>
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-white text-xl font-medium">
+                      <TypingAnimation
+                        duration={80}
+                        delay={200}
+                        showCursor={false}
+                        className="text-white text-xl font-medium"
+                      >
+                        {currentUser.nickname}
+                      </TypingAnimation>
+                    </h2>
+                    {currentUser.gender === "male" && (
+                      <Mars className="w-4 h-4 text-indigo-400" />
+                    )}
+                    {currentUser.gender === "female" && (
+                      <Venus className="w-4 h-4 text-pink-400" />
+                    )}
+                    {(!currentUser.gender ||
+                      currentUser.gender === "unknown") && (
+                      <CircleHelp className="w-4 h-4 text-gray-400" />
+                    )}
+                  </div>
                 )}
 
                 {isEditing ? (
@@ -435,7 +487,7 @@ export default function ProfilePanel({
           </div>
 
           {/* Stats */}
-          <div className="flex gap-6 mt-6">
+          <div className="flex gap-6 mt-2">
             <div className="text-center">
               <div className="text-white text-2xl font-light">
                 {posts.length}

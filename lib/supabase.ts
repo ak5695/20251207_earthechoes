@@ -17,6 +17,7 @@ export interface User {
   email: string;
   nickname: string;
   avatar_url: string | null;
+  gender: string; // 'male' | 'female' | 'unknown'
   region: string | null;
   language: string;
   is_vip: boolean;

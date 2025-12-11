@@ -63,7 +63,7 @@ export default function LoadingScreen({
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-slate-950 text-white transition-opacity duration-1000"
+      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black text-white transition-opacity duration-1000"
       style={{ opacity }}
     >
       {/* 核心动画：脉冲星球 */}

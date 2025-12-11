@@ -104,7 +104,7 @@ export default function MoodCard({
         </div>
 
         {/* 内容 - 文字在下方，使用打字动画效果 */}
-        <div className="text-white text-sm mb-4">
+        <div className="text-white text-sm md:text-base mb-4">
           <TypingAnimation
             duration={80}
             delay={600}
@@ -112,7 +112,7 @@ export default function MoodCard({
             blinkCursor={true}
             cursorStyle="line"
             startOnView={false}
-            className="text-white"
+            className="text-gray-400"
           >
             {particle.text}
           </TypingAnimation>

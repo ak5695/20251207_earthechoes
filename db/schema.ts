@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 120 }).notNull().unique(),
   nickname: varchar("nickname", { length: 50 }).notNull(),
   avatarUrl: text("avatar_url"),
+  gender: varchar("gender", { length: 20 }).default("unknown"),
   region: varchar("region", { length: 100 }),
   language: varchar("language", { length: 10 }).default("zh"),
   isVip: boolean("is_vip").default(false),
@@ -96,10 +97,14 @@ export const topics = pgTable("topics", {
 export const postTopics = pgTable(
   "post_topics",
   {
-    postId: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
-    topicId: uuid("topic_id").references(() => topics.id, {
-      onDelete: "cascade",
-    }),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    topicId: uuid("topic_id")
+      .notNull()
+      .references(() => topics.id, {
+        onDelete: "cascade",
+      }),
   },
   (table) => {
     return {

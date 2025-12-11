@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { GeneratedAvatar } from "@/components/generated-avatar";
-import { X, Heart, MessageCircle } from "lucide-react";
+import { X, Heart, MessageCircle, Mars, Venus, CircleHelp } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { triggerHapticFeedback } from "../utils/haptics";
 
@@ -169,7 +169,7 @@ export default function UserProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-8 pb-6 px-6 border-b border-white/10">
+        <div className="relative pt-4 pb-3 px-6 border-b border-white/10">
           {/* Close button */}
           <button
             onClick={() => {
@@ -196,6 +196,15 @@ export default function UserProfilePanel({
                     {user.nickname}
                   </TypingAnimation>
                 </h2>
+                {user.gender === "male" && (
+                  <Mars className="w-4 h-4 text-indigo-400" />
+                )}
+                {user.gender === "female" && (
+                  <Venus className="w-4 h-4 text-pink-400" />
+                )}
+                {(!user.gender || user.gender === "unknown") && (
+                  <CircleHelp className="w-4 h-4 text-gray-400" />
+                )}
                 {user.is_vip && (
                   <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
                     {t.vip}
@@ -231,7 +240,7 @@ export default function UserProfilePanel({
           </div>
 
           {/* Stats */}
-          <div className="flex gap-6 mt-6">
+          <div className="flex gap-6 mt-2">
             <div className="text-center">
               <div className="text-white text-2xl font-light">
                 {posts.length}

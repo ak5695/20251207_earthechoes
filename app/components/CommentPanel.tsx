@@ -6,6 +6,7 @@ import { TypingAnimation } from "@/components/ui/typing-animation";
 import UserProfilePanel from "./UserProfilePanel";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
+import { Mars, Venus, CircleHelp } from "lucide-react";
 
 // =============================================
 // Types
@@ -265,6 +266,15 @@ function CommentItem({
           >
             {comment.user.nickname}
           </span>
+          {comment.user.gender === "male" && (
+            <Mars className="w-3 h-3 text-indigo-400" />
+          )}
+          {comment.user.gender === "female" && (
+            <Venus className="w-3 h-3 text-pink-400" />
+          )}
+          {(!comment.user.gender || comment.user.gender === "unknown") && (
+            <CircleHelp className="w-3 h-3 text-gray-400" />
+          )}
           {comment.user.is_vip && (
             <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
               {t.vip}
@@ -806,6 +816,15 @@ export default function CommentPanel({
                 >
                   {post.user.nickname}
                 </span>
+                {post.user.gender === "male" && (
+                  <Mars className="w-3 h-3 text-indigo-400" />
+                )}
+                {post.user.gender === "female" && (
+                  <Venus className="w-3 h-3 text-pink-400" />
+                )}
+                {(!post.user.gender || post.user.gender === "unknown") && (
+                  <CircleHelp className="w-3 h-3 text-gray-400" />
+                )}
                 {post.user.is_vip && (
                   <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-[10px] rounded font-medium">
                     VIP

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TypingAnimation } from "@/components/ui/typing-animation";
-import { Shuffle, Loader2, X } from "lucide-react";
+import { Shuffle, Loader2, X, Mars, Venus, CircleHelp } from "lucide-react";
 import { triggerHapticFeedback } from "../utils/haptics";
 
 interface UserSetupModalProps {
@@ -22,6 +22,10 @@ const translations: Record<string, Record<string, string>> = {
     welcomeSubtitle: "给自己取个名字吧",
     nickname: "昵称",
     nicknamePlaceholder: "输入昵称...",
+    gender: "性别",
+    male: "男",
+    female: "女",
+    unknown: "保密",
     region: "地区（可选）",
     regionPlaceholder: "例如：北京、Tokyo、NYC...",
     continue: "开始旅程",
@@ -47,6 +51,10 @@ const translations: Record<string, Record<string, string>> = {
     welcomeSubtitle: "Choose a name for yourself",
     nickname: "Nickname",
     nicknamePlaceholder: "Enter nickname...",
+    gender: "Gender",
+    male: "Male",
+    female: "Female",
+    unknown: "Secret",
     region: "Region (optional)",
     regionPlaceholder: "e.g., NYC, Tokyo, London...",
     continue: "Start Journey",
@@ -72,6 +80,10 @@ const translations: Record<string, Record<string, string>> = {
     welcomeSubtitle: "名前を選んでください",
     nickname: "ニックネーム",
     nicknamePlaceholder: "ニックネームを入力...",
+    gender: "性別",
+    male: "男性",
+    female: "女性",
+    unknown: "秘密",
     region: "地域（任意）",
     regionPlaceholder: "例：東京、NYC、ロンドン...",
     continue: "旅を始める",
@@ -97,6 +109,10 @@ const translations: Record<string, Record<string, string>> = {
     welcomeSubtitle: "이름을 선택하세요",
     nickname: "닉네임",
     nicknamePlaceholder: "닉네임 입력...",
+    gender: "성별",
+    male: "남성",
+    female: "여성",
+    unknown: "비공개",
     region: "지역 (선택사항)",
     regionPlaceholder: "예: 서울, Tokyo, NYC...",
     continue: "여행 시작",
@@ -227,6 +243,7 @@ export default function UserSetupModal({
   const t = translations[language] || translations.en;
   const [activeTab, setActiveTab] = useState<"register" | "login">("register");
   const [nickname, setNickname] = useState("");
+  const [gender, setGender] = useState("unknown");
   const [region, setRegion] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -358,6 +375,7 @@ export default function UserSetupModal({
         .insert({
           id: signUpData.user.id,
           nickname: nickname.trim(),
+          gender: gender,
           region: region.trim() || null,
           language: userLanguage,
           email: email.trim(),
@@ -437,7 +455,7 @@ export default function UserSetupModal({
                 {activeTab === "login" ? t.welcomeBack : t.welcomeTitle}
               </TypingAnimation>
             </h2>
-            <p className="text-gray-400 text-sm">
+            {/* <p className="text-gray-400 text-sm">
               <TypingAnimation
                 duration={60}
                 delay={600}
@@ -448,7 +466,7 @@ export default function UserSetupModal({
               >
                 {activeTab === "login" ? t.loginSubtitle : t.welcomeSubtitle}
               </TypingAnimation>
-            </p>
+            </p> */}
           </div>
 
           {/* 语言选择器 - 移到最上面 */}
@@ -538,29 +556,35 @@ export default function UserSetupModal({
 
             {/* Register Tab */}
             <TabsContent value="register" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">{t.email}</label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
+                  {t.email}
+                </label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t.emailPlaceholder}
-                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                  className="col-span-3 bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">{t.password}</label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
+                  {t.password}
+                </label>
                 <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t.passwordPlaceholder}
-                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                  className="col-span-3 bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">{t.nickname}</label>
-                <div className="flex gap-2">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
+                  {t.nickname}
+                </label>
+                <div className="col-span-3 flex gap-2">
                   <Input
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
@@ -575,20 +599,68 @@ export default function UserSetupModal({
                       triggerHapticFeedback();
                       handleRandomName();
                     }}
-                    className="border-gray-600 hover:bg-gray-700 btn-icon"
+                    className="border-gray-600 hover:bg-gray-700 btn-icon shrink-0"
                   >
                     <Shuffle className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm text-gray-400">{t.region}</label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
+                  {t.gender}
+                </label>
+                <div className="col-span-3 flex gap-2">
+                  <Button
+                    variant={gender === "male" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setGender("male")}
+                    className={`flex-1 gap-2 ${
+                      gender === "male"
+                        ? "bg-indigo-500 hover:bg-indigo-600"
+                        : "border-gray-600 hover:bg-gray-700"
+                    }`}
+                  >
+                    <Mars className="w-4 h-4" />
+                    {t.male}
+                  </Button>
+                  <Button
+                    variant={gender === "female" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setGender("female")}
+                    className={`flex-1 gap-2 ${
+                      gender === "female"
+                        ? "bg-pink-500 hover:bg-pink-600"
+                        : "border-gray-600 hover:bg-gray-700"
+                    }`}
+                  >
+                    <Venus className="w-4 h-4" />
+                    {t.female}
+                  </Button>
+                  <Button
+                    variant={gender === "unknown" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setGender("unknown")}
+                    className={`flex-1 gap-2 ${
+                      gender === "unknown"
+                        ? "bg-gray-600 hover:bg-gray-500"
+                        : "border-gray-600 hover:bg-gray-700"
+                    }`}
+                  >
+                    <CircleHelp className="w-4 h-4" />
+                    {t.unknown}
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
+                  {t.region}
+                </label>
                 <Input
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
                   placeholder={t.regionPlaceholder}
                   maxLength={50}
-                  className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                  className="col-span-3 bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
                 />
               </div>
 

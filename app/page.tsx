@@ -821,7 +821,7 @@ export default function Home() {
       )}
 
       {/* Main UI Layer */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-between p-4 md:p-8 pointer-events-none">
+      <div className="absolute inset-0 z-10 flex flex-col justify-between p-2 md:p-8 pointer-events-none">
         {/* Header */}
         <Header
           currentUser={currentUser}

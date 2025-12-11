@@ -1,485 +1,686 @@
 [
   {
     "sentence": "你太过勇敢安静，我都忘了你正承受痛苦。",
-    "person": "海明威"
+    "person": "海明威",
+    "gender": "male",
+    "created_at": "1899-07-21T00:00:00Z"
   },
   {
     "sentence": "我的精神独往独来，不与人们同行。",
-    "person": "拜伦"
+    "person": "拜伦",
+    "gender": "male",
+    "created_at": "1788-01-22T00:00:00Z"
   },
   {
     "sentence": "生命当然没有意义。要是有，人就不自由了。",
-    "person": "塔可夫斯基"
+    "person": "塔可夫斯基",
+    "gender": "male",
+    "created_at": "1932-04-04T00:00:00Z"
   },
   {
     "sentence": "我要你静心学习那份等待时机成熟的情绪，也要你一定保有这份等待之外的努力和坚持。",
-    "person": "三毛"
+    "person": "三毛",
+    "gender": "female",
+    "created_at": "1943-03-26T00:00:00Z"
   },
   {
     "sentence": "真正的救赎，并不是厮杀后的胜利，而是能在苦难之中找到生的力量和心的安宁。",
-    "person": "加缪"
+    "person": "加缪",
+    "gender": "male",
+    "created_at": "1913-11-07T00:00:00Z"
   },
   {
     "sentence": "上帝有无数让我们陷于孤独并找到自己的方式。",
-    "person": "赫尔曼·黑塞"
+    "person": "赫尔曼·黑塞",
+    "gender": "male",
+    "created_at": "1877-07-02T00:00:00Z"
   },
   {
     "sentence": "其实人跟树是一样的，越是向往高处的阳光，它的根就越要伸向黑暗的地底。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
   {
     "sentence": "不要因为事与愿违而感到惊讶，因为这个宇宙比你大得多。",
-    "person": "阿兰·德波顿"
+    "person": "阿兰·德波顿",
+    "gender": "male",
+    "created_at": "1969-12-20T00:00:00Z"
   },
   {
     "sentence": "E=mc²",
-    "person": "爱因斯坦"
+    "person": "爱因斯坦",
+    "gender": "male",
+    "created_at": "1879-03-14T00:00:00Z"
   },
   {
     "sentence": "切莫垂头丧气,即使失去了一切,你还握有未来。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "我认为人的一生中总会有某个时刻，需要坚守自己的决定。一个说“这就是我，这就是我的选择”的时刻。",
-    "person": "石黑一雄"
+    "person": "石黑一雄",
+    "gender": "male",
+    "created_at": "1954-11-08T00:00:00Z"
   },
   {
     "sentence": "我总觉得我会孤独终老，又总觉得有一个人正穿过人群，朝我走来。",
-    "person": "里查德·罗珀"
+    "person": "里查德·罗珀",
+    "gender": "male",
+    "created_at": "1988-01-01T00:00:00Z"
   },
   {
     "sentence": "在最黑暗的那段人生，是我自己把自己拉出深渊。没有那个人，我就做那个人。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "我赞美我自己，歌唱我自己，我承担的你也将承担，因为属于我的每一个原子也同样属于你。",
-    "person": "惠特曼"
+    "person": "惠特曼",
+    "gender": "male",
+    "created_at": "1819-05-31T00:00:00Z"
   },
   {
     "sentence": "为了让灵魂前进，所有的一切都得让路。",
-    "person": "惠特曼"
+    "person": "惠特曼",
+    "gender": "male",
+    "created_at": "1819-05-31T00:00:00Z"
   },
   {
     "sentence": "多少人真情假意，爱过你的美丽，爱过你欢乐而迷人的青春，唯独一人爱你朝圣者的心，爱你日益凋谢的脸上的衰戚。",
-    "person": "叶芝"
+    "person": "叶芝",
+    "gender": "male",
+    "created_at": "1865-06-13T00:00:00Z"
   },
   {
     "sentence": "如若我有天国的锦缎，以金银色的光线织就，蔚蓝的、灰蒙的、漆黑的锦缎变幻着黑夜、晨昏与白昼。我愿把这锦缎铺展在你的足下，可我，除了梦想，一无所有，就把我的梦铺展在你的足下，轻点啊，因为你踩着的是，我的梦。",
-    "person": "叶芝"
+    "person": "叶芝",
+    "gender": "male",
+    "created_at": "1865-06-13T00:00:00Z"
   },
   {
     "sentence": "我将要起航，因为我，日日夜夜都听到那水声轻拍着湖滨，不管我站在车行道还是灰暗的人行道，我都能在心灵深处听见这回响。",
-    "person": "叶芝"
+    "person": "叶芝",
+    "gender": "male",
+    "created_at": "1865-06-13T00:00:00Z"
   },
   {
     "sentence": "不要温和地走进那个良夜。",
-    "person": "狄兰・托马斯"
+    "person": "狄兰・托马斯",
+    "gender": "male",
+    "created_at": "1914-10-27T00:00:00Z"
   },
   {
     "sentence": "不能听命于自己者，就要受命于他人。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
-
   {
     "sentence": "上帝予你荒野，要你成为高飞的鹰。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "我身体里的火车从来不会错轨 ，所以允许大雪，风暴，泥石流，和荒谬。",
-    "person": "余秀华"
+    "person": "余秀华",
+    "gender": "female",
+    "created_at": "1976-03-22T00:00:00Z"
   },
   {
     "sentence": "尊重那些与你抗争的人，因为你争的是理，不是去损毁对方的人格。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "人一旦悟透了就会变得沉默，不是没有与人相处的能力，而是没有了逢人作戏的兴趣。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "唯沉默是最高的轻蔑。",
-    "person": "鲁迅"
+    "person": "鲁迅",
+    "gender": "male",
+    "created_at": "1881-09-25T00:00:00Z"
   },
   {
     "sentence": "觉醒的人只有一项义务：找到自我，固守自我，沿着自己的路向前走，不管它通向哪里。",
-    "person": "赫尔曼·黑塞"
+    "person": "赫尔曼·黑塞",
+    "gender": "male",
+    "created_at": "1877-07-02T00:00:00Z"
   },
   {
     "sentence": "你要搞清楚自己人生的剧本 —— 不是你父母的续集，不是你子女的前传，更不是你朋友的外篇。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
-
   {
     "sentence": "自我觉醒的第一步是承认自己的无知。",
-    "person": "苏格拉底"
+    "person": "苏格拉底",
+    "gender": "male",
+    "created_at": "-0470-01-01T00:00:00Z"
   },
   {
     "sentence": "唯有我们觉醒之际，天才会破晓。破晓的，不止是黎明。",
-    "person": "亨利·戴维·梭罗"
+    "person": "亨利·戴维·梭罗",
+    "gender": "male",
+    "created_at": "1817-07-12T00:00:00Z"
   },
   {
     "sentence": "每个人都是月亮，总有一个阴暗面，从来不让人看见。",
-    "person": "马克·吐温"
+    "person": "马克·吐温",
+    "gender": "male",
+    "created_at": "1835-11-30T00:00:00Z"
   },
   {
     "sentence": "自我觉醒是一场永无止境的旅程。",
-    "person": "卡尔·荣格"
+    "person": "卡尔·荣格",
+    "gender": "male",
+    "created_at": "1875-07-26T00:00:00Z"
   },
   {
     "sentence": "人必须超越自我，否则就会被自我所困。",
-    "person": "让-保罗·萨特"
+    "person": "让-保罗·萨特",
+    "gender": "male",
+    "created_at": "1905-06-21T00:00:00Z"
   },
   {
     "sentence": "我们终此一生，就是要摆脱他人的期待，找到真正的自己。",
-    "person": "伍绮诗"
+    "person": "伍绮诗",
+    "gender": "female",
+    "created_at": "1980-07-30T00:00:00Z"
   },
   {
     "sentence": "教育的目的是让学生们摆脱现实的奴役，而现在的年轻人正意图做着相反的努力,为了适应现实 而改变自己。",
-    "person": "西塞罗"
+    "person": "西塞罗",
+    "gender": "male",
+    "created_at": "-0106-01-03T00:00:00Z"
   },
   {
     "sentence": "如果你是神经病,那么全世界都会让着你。 但如果你觉得全世界都是让着你, 那么你就是神经病。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "写下你的讣告，然后倒着活",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "人生中的重大机会寥寥无几。当你得到一个好机会时，看在上帝的份上，不要像一只胆小的兔子一样犹豫不决，不要退缩。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "学习各个学科中的重要理念。不要理会领域之问的界限。要疯狂地交叉应用。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "每当你觉得某件事或某个人毁了你的人生，其实是你自己。受害者心态极具削弱性。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
-
   {
     "sentence": "任何时候都不要想着别的事情，而应该想着激励的力量。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "假设人生会非常艰难，然后问自己能否承受。如果答案是能，那你就赢了。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "做你喜欢并且擅长的事。 职业的三条规则：不要卖任何你自己都不会买的东西；不要为你不尊敬或不钦佩的人工作；只和你喜欢的人一起工作。",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "真正了不起的是，像我们这样的人长期的优势往往来自于始终如一地避免愚蠢",
-    "person": "查理·芒格"
+    "person": "查理·芒格",
+    "gender": "male",
+    "created_at": "1924-01-01T00:00:00Z"
   },
   {
     "sentence": "这个世界没有真相，只有视角。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
   {
     "sentence": "有思想力的人是万物的尺度。",
-    "person": "苏格拉底"
+    "person": "苏格拉底",
+    "gender": "male",
+    "created_at": "-0470-01-01T00:00:00Z"
   },
   {
     "sentence": "知识可以传授，但智慧不能。",
-    "person": "赫尔曼·黑塞"
+    "person": "赫尔曼·黑塞",
+    "gender": "male",
+    "created_at": "1877-07-02T00:00:00Z"
   },
   {
     "sentence": "把行动交给现在，把结果交给时间。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "释放无限光明的是人心，制造无边黑暗的也是人心。",
-    "person": "雨果"
+    "person": "雨果",
+    "gender": "male",
+    "created_at": "1802-02-26T00:00:00Z"
   },
-
   {
     "sentence": "你能在浪费时间中获得乐趣，那就不是浪费时间。",
-    "person": "罗素"
+    "person": "罗素",
+    "gender": "male",
+    "created_at": "1872-05-18T00:00:00Z"
   },
   {
     "sentence": "一直把死亡挂在嘴边的人，不是真正想死，而是渴望被爱。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "你所听到的只是观点，而非事实；你所看到的只是视角，而非真相。",
-    "person": "马可·奥勒留"
+    "person": "马可·奥勒留",
+    "gender": "male",
+    "created_at": "0121-04-26T00:00:00Z"
   },
   {
     "sentence": "大胆去做，不要怕，没有人在乎，就算有人在乎，人又算什么东西！",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "我们终其一生，都在寻找的那个和自己灵魂相近的人，但最后发现唯一契合的只有自己。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "人类从历史中学到的唯一教训，就是没有从历史中吸取到任何教训。",
-    "person": "黑格尔"
+    "person": "黑格尔",
+    "gender": "male",
+    "created_at": "1770-08-27T00:00:00Z"
   },
   {
     "sentence": "人应尊敬自己，并应自视能配得上最高尚的东西",
-    "person": "黑格尔"
+    "person": "黑格尔",
+    "gender": "male",
+    "created_at": "1770-08-27T00:00:00Z"
   },
-
   {
     "sentence": "时间决定你会在生命中遇见谁，你的心态决定你想要谁出现在你的生命里，你的行为决定谁能留下。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "我们曾如此期盼外界的认可，到最后才知道，世界是自己的，与他人毫无关系。",
-    "person": "杨绛"
+    "person": "杨绛",
+    "gender": "female",
+    "created_at": "1911-07-17T00:00:00Z"
   },
   {
     "sentence": "人不应该是插在花瓶里供人观赏的静物，而是蔓延在草原上随风起舞的韵律。",
-    "person": "伍尔夫"
+    "person": "伍尔夫",
+    "gender": "female",
+    "created_at": "1882-01-25T00:00:00Z"
   },
   {
     "sentence": "向外张望是因为我对这个世界依旧充满希望，向内审视是因为我对这个世界看得透彻。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "任何一个你不喜欢又离不开的地方，任何一种你不喜欢又摆脱不了的生活，就是监狱。如果你感到痛苦和不自由，希望你心里永远有一团不会熄灭的火焰，不要麻木，不要被同化。",
-    "person": "<肖申克的救赎>"
+    "person": "<肖申克的救赎>",
+    "gender": "male",
+    "created_at": "1947-09-21T00:00:00Z"
   },
   {
     "sentence": "人的本质是一切 社会关系的总和 。",
-    "person": "马克思"
+    "person": "马克思",
+    "gender": "male",
+    "created_at": "1818-05-05T00:00:00Z"
   },
-
   {
     "sentence": "其实很多事情都是情绪上的问题，我们只是没有客观的去处理好事实和情绪的关系。要把失败当做一个极小的事，处理好事情的本身，而不是陷入自己的情绪中，不能自拔。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
-
   {
     "sentence": "心软和不好意思，只会杀死自己。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
-
   {
     "sentence": "人的精神寄托可以是音乐，可以是书籍，可以是运动，可以是工作，可以是山川湖海，唯独不可以是人。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
   {
     "sentence": "昨日不可追，未来不可期，当下才是生命。结果之后还有结果。",
-    "person": "匿名"
+    "person": "匿名",
+    "gender": "secret",
+    "created_at": "2000-01-01T00:00:00Z"
   },
-
   {
     "sentence": "往外张望的人在做梦，向内审视的人才清醒。",
-    "person": "卡尔·荣格"
+    "person": "卡尔·荣格",
+    "gender": "male",
+    "created_at": "1875-07-26T00:00:00Z"
   },
   {
     "sentence": "你担心什么，什么就控制你。",
-    "person": "约翰·洛克"
+    "person": "约翰·洛克",
+    "gender": "male",
+    "created_at": "1632-08-29T00:00:00Z"
   },
   {
     "sentence": "只有一件事会使人疲劳：摇摆不定和优柔寡断。",
-    "person": "茨威格"
+    "person": "茨威格",
+    "gender": "male",
+    "created_at": "1881-11-28T00:00:00Z"
   },
   {
     "sentence": "所谓辉煌的人生，不过是欲望的囚徒。",
-    "person": "叔本华"
+    "person": "叔本华",
+    "gender": "male",
+    "created_at": "1788-02-22T00:00:00Z"
   },
   {
     "sentence": "世界上最大的监狱，就是人的内心。走不出自己的执念，到哪里都是囚徒。",
-    "person": "稻盛和夫"
+    "person": "稻盛和夫",
+    "gender": "male",
+    "created_at": "1932-01-21T00:00:00Z"
   },
   {
     "sentence": "我们很少信任比我们好的人，宁肯避免与他们来往。相反，我们常对与我们相似、和我们有着共同弱点的人吐露心迹。我们并不希望改掉弱点，只希望受到怜悯与鼓励。",
-    "person": "加缪"
+    "person": "加缪",
+    "gender": "male",
+    "created_at": "1913-11-07T00:00:00Z"
   },
   {
     "sentence": "低调是为了生活在自己的世界里，高调是为了生活在别人的世界里。",
-    "person": "冯骥才"
+    "person": "冯骥才",
+    "gender": "male",
+    "created_at": "1942-02-09T00:00:00Z"
   },
-
   {
     "sentence": "真实的、永恒的、最高级的快乐，只能从三样东西中取得：工作、自我克制和爱。",
-    "person": "罗曼·罗兰"
+    "person": "罗曼·罗兰",
+    "gender": "male",
+    "created_at": "1866-01-29T00:00:00Z"
   },
   {
     "sentence": "人们相互蔑视，又相互奉承，人们各自希望自己高于别人，又各自匍匐在别人面前。",
-    "person": "马克·奥勒留"
+    "person": "马克·奥勒留",
+    "gender": "male",
+    "created_at": "0121-04-26T00:00:00Z"
   },
   {
     "sentence": "我们的需要越少，我们越近似神。",
-    "person": "苏格拉底"
+    "person": "苏格拉底",
+    "gender": "male",
+    "created_at": "-0470-01-01T00:00:00Z"
   },
-
   {
     "sentence": "想要从讨厌的地方飞出来，就得有藏起来的翅膀。",
-    "person": "三岛由纪夫"
+    "person": "三岛由纪夫",
+    "gender": "male",
+    "created_at": "1925-01-14T00:00:00Z"
   },
   {
     "sentence": "世界上最大的勇气，是压力下的优雅。",
-    "person": "海明威"
+    "person": "海明威",
+    "gender": "male",
+    "created_at": "1899-07-21T00:00:00Z"
   },
   {
     "sentence": "希望因有趣而被喜欢，因有用而被需要，却因为某些无趣无用的细枝末节，被某个人爱。",
-    "person": "《以自己喜欢的方式过一生》"
+    "person": "《以自己喜欢的方式过一生》",
+    "gender": "female",
+    "created_at": "1980-01-01T00:00:00Z"
   },
   {
     "sentence": "如果你站在童年的位置瞻望未来，你会说你前途未卜，你会说你前途无量；但要是你站在终点看你生命的轨迹，你看到的只有一条路，你就只能看到一条命定之路。不知道命运是什么，才知道什么是命运。",
-    "person": "史铁生"
+    "person": "史铁生",
+    "gender": "male",
+    "created_at": "1951-01-04T00:00:00Z"
   },
   {
     "sentence": "逻辑会带你从A到B，想象力会带你到任何地方。",
-    "person": "爱因斯坦"
+    "person": "爱因斯坦",
+    "gender": "male",
+    "created_at": "1879-03-14T00:00:00Z"
   },
   {
     "sentence": "在孤独中，孤独者将自己吃得一干二净。而在群体中，他被众人吃掉。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
   {
     "sentence": "恶是不曾思考过的东西。思考意味着要达到某一深度，逼近问题根源。而涉及恶的瞬间，那里什么也没有，带来的是思考的挫折，这就是'恶的平庸'。",
-    "person": "汉娜阿伦特"
+    "person": "汉娜阿伦特",
+    "gender": "female",
+    "created_at": "1906-10-14T00:00:00Z"
   },
   {
     "sentence": "我这一生中从来没有爱过任何一个民族、任何一个集体 —— 不爱德意志，不爱法兰西，不爱美利坚，不爱工人阶级，不爱这一切。我‘只’爱我的朋友，我所知道、所信仰的惟一一种爱，就是爱人",
-    "person": "汉娜阿伦特"
+    "person": "汉娜阿伦特",
+    "gender": "female",
+    "created_at": "1906-10-14T00:00:00Z"
   },
-
   {
     "sentence": "生命像一场风，我们不知道刮过一个人的这场风什么时候停，不知道风在人的生命中已经刮歪几棵树，吹倒几堵墙。",
-    "person": "刘亮程"
+    "person": "刘亮程",
+    "gender": "male",
+    "created_at": "1962-01-01T00:00:00Z"
   },
   {
     "sentence": "深窥自己的心，而后发觉一切的奇迹在你自己。",
-    "person": "培根"
+    "person": "培根",
+    "gender": "male",
+    "created_at": "1561-01-22T00:00:00Z"
   },
   {
     "sentence": "四平八稳的日子里，谁都能讲出几句大道理。主张人权，占领道德高地很简单。但当暴风雨来临之时，人们就慌了手脚，再无力顾及所谓的正确，只能随波逐流。人就是这样。",
-    "person": "伊坂幸太郎"
+    "person": "伊坂幸太郎",
+    "gender": "male",
+    "created_at": "1971-05-25T00:00:00Z"
   },
   {
     "sentence": "要求别人爱自己，是最大的傲慢。",
-    "person": "尼采"
+    "person": "尼采",
+    "gender": "male",
+    "created_at": "1844-10-15T00:00:00Z"
   },
   {
     "sentence": "很多人觉得他们在思考，而实际上他们只是在重新整理自己的偏见。",
-    "person": "威廉·詹姆斯"
+    "person": "威廉·詹姆斯",
+    "gender": "male",
+    "created_at": "1842-01-11T00:00:00Z"
   },
   {
     "sentence": "我希望自己良善、明察，永远不要仓促经过人间。要常常躬身低首，缓缓而行。",
-    "person": "玛丽·奥利弗"
+    "person": "玛丽·奥利弗",
+    "gender": "female",
+    "created_at": "1935-09-10T00:00:00Z"
   },
-
   {
     "sentence": "什么是离婚的主要原因？结婚",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "年轻的时候我以为钱就是一切，现在老了才知道，确实如此。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "浪漫的本质是不确定性。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "美是一种天赋，实际上，美超过了天赋，因为它不需要解释。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "一个人倘若不为自己思考，那就从未思考过。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "真相很少纯粹，也决不简单。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "女人是用来爱的，而不是用来了解的。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "我们教给人们如何记忆，却从来不教他们如何成长。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "爱自己是终身浪漫的开始。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "要是一个人吸引我，他无论选择什么方式表达自己，对我来说都很可爱。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-  
   {
     "sentence": "人是理性动物，但当他被要求按照理性的要求行动时，可又要发脾气了。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "人生就是一件蠢事追着另一件蠢事而来，而爱情则是两个蠢东西追来追去。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
- 
-
   {
     "sentence": "如果你拒绝接受我的信，我也照写不误，以便你知道至少有信一直在等着你。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "不要垂头丧气，即使失去一切，明天仍在你的手里。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "一种想法是否有价值，同谈出这个想法的人是否出于真心毫无关系。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
   {
     "sentence": "世界上只有一件事比被人议论还要糟糕，那就是不被议论。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "心是用来碎的。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
-
   {
     "sentence": "活着是世界上最罕见的事，大多数人只是存在，仅此而已。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   },
- 
   {
     "sentence": "我们走后，他们会给你们修学校和医院，会提高你们的工资，这不是因为他们良心发现，也不是因为他们变成了好人，而是因为我们来过。”",
-    "person": "切・格瓦拉"
+    "person": "切・格瓦拉",
+    "gender": "male",
+    "created_at": "1928-06-14T00:00:00Z"
   },
   {
     "sentence": "我步入丛林，吸取生命中所有的精华。把非生命的一切都击溃，以免当我生命终结，发现自己从没有活过。",
-    "person": "亨利・戴维・梭罗"
+    "person": "亨利・戴维・梭罗",
+    "gender": "male",
+    "created_at": "1817-07-12T00:00:00Z"
   },
- 
   {
     "sentence": "我未曾见过一个早起、勤奋、谨慎、诚实的人抱怨命运不好；良好的品格，优良的习惯，坚强的意志，是不会被假设所谓的命运击败的。",
-    "person": "本杰明・富兰克林"
+    "person": "本杰明・富兰克林",
+    "gender": "male",
+    "created_at": "1706-01-17T00:00:00Z"
   },
-  
   {
     "sentence": "当某事足够重要，即使成功率不高，你也应该去做。",
-    "person": "埃隆・马斯克"
+    "person": "埃隆・马斯克",
+    "gender": "male",
+    "created_at": "1971-06-28T00:00:00Z"
   },
   {
     "sentence": "我们总是高估今后一两年内将要发生的变革，总是低估未来将要发生的变革，所以不要让你自己陷入无所作为的窘境。",
-    "person": "比尔・盖茨"
+    "person": "比尔・盖茨",
+    "gender": "male",
+    "created_at": "1955-10-28T00:00:00Z"
   },
   {
     "sentence": "信息是对不确定性的消除。",
-    "person": "克劳德・香农"
+    "person": "克劳德・香农",
+    "gender": "male",
+    "created_at": "1916-04-30T00:00:00Z"
   },
-  
   {
     "sentence": "伟大的艺术家所看到的，从来都不是世界的本来面目。一旦他看透了，他就不再是艺术家。",
-    "person": "王尔德"
+    "person": "王尔德",
+    "gender": "male",
+    "created_at": "1854-10-16T00:00:00Z"
   }
 ]

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { AUDIO_CONFIG } from "../config/audio";
 
 interface UseMusicReturn {
   isMusicPlaying: boolean;
@@ -14,19 +15,21 @@ interface UseMusicReturn {
 }
 
 export function useMusic(
-  audioSrc: string = "/ambient-music-optimized.mp3"
+  audioSrc: string = AUDIO_CONFIG.bgm.src
 ): UseMusicReturn {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.3);
+  const [musicVolume, setMusicVolume] = useState<number>(
+    AUDIO_CONFIG.bgm.defaultVolume
+  );
   const [isMusicLoading, setIsMusicLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 初始化音频
   useEffect(() => {
     const audio = new Audio();
-    audio.loop = true;
-    audio.volume = 0.3;
+    audio.loop = AUDIO_CONFIG.bgm.loop;
+    audio.volume = AUDIO_CONFIG.bgm.defaultVolume;
     audioRef.current = audio;
     audio.preload = "none"; // 避免自动加载大文件
 
@@ -37,7 +40,7 @@ export function useMusic(
 
     const handlePlaying = () => {
       console.log("音频播放中, 音量:", audio.volume);
-      audio.volume = 0.3;
+      audio.volume = AUDIO_CONFIG.bgm.defaultVolume;
       setIsMusicLoading(false);
       setIsMusicPlaying(true);
     };

@@ -1,157 +1,153 @@
+import { config } from "dotenv";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import fs from "fs";
 import path from "path";
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
+import { users, posts } from "../db/schema";
+import { eq, and } from "drizzle-orm";
 
-// Load environment variables from .env.local
-dotenv.config({ path: ".env.local" });
+// Load .env.local
+config({ path: ".env.local" });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const connectionString = process.env.DATABASE_URL;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing Supabase URL or Key in .env.local");
+if (!connectionString) {
+  console.error("DATABASE_URL is not defined");
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Disable prefetch to avoid hanging
+const client = postgres(connectionString, { prepare: false });
+const db = drizzle(client);
 
-const QUOTES_FILE = path.join(process.cwd(), "语录.json");
+async function main() {
+  const quotesPath = path.join(process.cwd(), "语录.json");
+  if (!fs.existsSync(quotesPath)) {
+    console.error("语录.json not found!");
+    process.exit(1);
+  }
 
-interface Quote {
-  sentence: string;
-  person: string;
-}
+  const quotesRaw = fs.readFileSync(quotesPath, "utf-8");
+  const quotes = JSON.parse(quotesRaw);
 
-// Nebula color palette from constants (approximate)
-const COLORS = [
-  "#6366f1", // Indigo
-  "#ec4899", // Pink
-  "#06b6d4", // Cyan
-  "#8b5cf6", // Violet
-  "#f43f5e", // Rose
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#3b82f6", // Blue
-];
+  console.log(`Found ${quotes.length} quotes to process.`);
 
-function getRandomColor() {
-  return COLORS[Math.floor(Math.random() * COLORS.length)];
-}
+  let newUsers = 0;
+  let newPosts = 0;
+  let skippedPosts = 0;
 
-async function seed() {
-  console.log("Reading quotes from:", QUOTES_FILE);
-  const rawData = fs.readFileSync(QUOTES_FILE, "utf-8");
-  const quotes: Quote[] = JSON.parse(rawData);
+  for (const quote of quotes) {
+    const { sentence, person, gender, created_at } = quote;
 
-  console.log(`Found ${quotes.length} quotes.`);
-
-  // 1. Identify unique authors
-  const authors = new Set<string>();
-  quotes.forEach((q) => authors.add(q.person));
-  console.log(`Found ${authors.size} unique authors.`);
-
-  // 2. Create or Get Users
-  const authorToUserId = new Map<string, string>();
-
-  for (const authorName of authors) {
-    // Check if user exists by nickname (assuming nickname is unique for simplicity in this seed script,
-    // though schema only says email is unique. We'll search by nickname)
-
-    // Note: In a real app, nickname isn't unique. But for seeding famous people, we can try to find them.
-    // Or we can just check if we already created them in this run.
-
-    // Let's try to find a user with this nickname first.
-    const { data: existingUsers, error: findError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("nickname", authorName)
-      .limit(1);
-
-    if (findError) {
-      console.error(`Error finding user ${authorName}:`, findError);
-      continue;
-    }
-
-    let userId = "";
-
-    if (existingUsers && existingUsers.length > 0) {
-      userId = existingUsers[0].id;
-      // console.log(`User ${authorName} already exists: ${userId}`);
-    } else {
-      // Create new user
-      // Generate a fake email
-      const email = `quote_${Math.random()
-        .toString(36)
-        .substring(7)}@history.com`;
-
-      const { data: newUser, error: createError } = await supabase
-        .from("users")
-        .insert({
-          email: email,
-          nickname: authorName,
-          avatar_url: null, // Could use a placeholder
-          region: "History",
-          is_vip: true, // Give them VIP status!
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error(`Error creating user ${authorName}:`, createError);
-        continue;
+    let dateObj: Date;
+    try {
+      // Handle BC dates or standard dates
+      let dateStr = created_at;
+      if (dateStr.startsWith("-")) {
+        // For BC dates, just use 0001-01-01 to avoid Postgres issues with negative years/timezones
+        console.warn(
+          `BC date found for ${person}: ${created_at}. Using 0001-01-01.`
+        );
+        dateObj = new Date("0001-01-01T00:00:00Z");
+      } else {
+        dateObj = new Date(dateStr);
       }
 
-      userId = newUser.id;
-      console.log(`Created user ${authorName}: ${userId}`);
+      if (isNaN(dateObj.getTime())) {
+        throw new Error("Invalid Date");
+      }
+    } catch (e) {
+      console.warn(
+        `Invalid date for ${person}: ${created_at}. Using default 0001-01-01.`
+      );
+      dateObj = new Date("0001-01-01T00:00:00Z");
     }
 
-    authorToUserId.set(authorName, userId);
-  }
+    // Generate a deterministic email based on the person's name
+    const emailLocal = Buffer.from(person)
+      .toString("base64")
+      .replace(/=/g, "")
+      .toLowerCase();
+    const email = `quote_${emailLocal}@earthechoes.history`;
 
-  // 3. Insert Posts
-  let successCount = 0;
-  for (const quote of quotes) {
-    const userId = authorToUserId.get(quote.person);
-    if (!userId) {
-      console.warn(`Skipping quote by ${quote.person} (no user id)`);
-      continue;
-    }
-
-    // Check if post already exists (by content) to avoid duplicates on re-run
-    const { data: existingPosts } = await supabase
-      .from("posts")
-      .select("id")
-      .eq("content", quote.sentence)
+    // Check if user exists
+    let userId;
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
 
-    if (existingPosts && existingPosts.length > 0) {
-      // console.log(`Quote already exists: "${quote.sentence.substring(0, 20)}..."`);
-      continue;
+    if (existingUsers.length > 0) {
+      userId = existingUsers[0].id;
+      // Update gender if it was unknown or different (optional, but good for sync)
+      if (existingUsers[0].gender !== gender) {
+        await db.update(users).set({ gender }).where(eq(users.id, userId));
+      }
+    } else {
+      // Create user
+      const newUser = await db
+        .insert(users)
+        .values({
+          email,
+          nickname: person,
+          gender: gender || "unknown",
+          createdAt: dateObj,
+          updatedAt: new Date(),
+          isVip: true,
+          language: "zh",
+          region: "History",
+        })
+        .returning({ id: users.id });
+      userId = newUser[0].id;
+      newUsers++;
+      console.log(`Created user: ${person}`);
     }
 
-    const { error: insertError } = await supabase.from("posts").insert({
-      user_id: userId,
-      content: quote.sentence,
-      mood: "思绪",
-      color: getRandomColor(),
-      language: "zh",
-      likes_count: Math.floor(Math.random() * 100), // Random likes
-      comments_count: 0,
-    });
+    // Check if post already exists for this user with this content
+    const existingPosts = await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.userId, userId), eq(posts.content, sentence)))
+      .limit(1);
 
-    if (insertError) {
-      console.error(`Error inserting quote: "${quote.sentence}"`, insertError);
+    if (existingPosts.length === 0) {
+      await db.insert(posts).values({
+        userId,
+        content: sentence,
+        mood: "感悟", // Default mood
+        language: "zh",
+        createdAt: dateObj,
+        color: getRandomColor(),
+      });
+      newPosts++;
     } else {
-      successCount++;
-      process.stdout.write("."); // Progress indicator
+      skippedPosts++;
     }
   }
 
-  console.log(`\nSuccessfully inserted ${successCount} quotes.`);
+  console.log(`Sync complete.`);
+  console.log(`New Users: ${newUsers}`);
+  console.log(`New Posts: ${newPosts}`);
+  console.log(`Skipped Posts (Duplicates): ${skippedPosts}`);
+
+  await client.end();
+  process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error("Seed failed:", err);
+function getRandomColor() {
+  const colors = [
+    "#6366f1",
+    "#ec4899",
+    "#06b6d4",
+    "#f59e0b",
+    "#8b5cf6",
+    "#10b981",
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });
