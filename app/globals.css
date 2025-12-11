@@ -658,14 +658,14 @@ body {
 }
 
 /* Custom Cursor Global Override */
-a, 
-button, 
-input[type="submit"], 
-input[type="button"], 
+a,
+button,
+input[type="submit"],
+input[type="button"],
 .cursor-pointer,
 .btn-interactive,
 .btn-icon,
 .btn-glow,
 .btn-close-hint {
-  cursor: url('/cursor.svg') 16 16, pointer !important;
+  cursor: url("/cursor.svg") 16 16, pointer !important;
 }
