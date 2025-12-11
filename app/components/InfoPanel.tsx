@@ -79,8 +79,8 @@ export default function InfoPanel({
                 <p>最后更新日期：2025年12月11日</p>
                 <h4 className="text-white font-medium mt-4">1. 接受条款</h4>
                 <p>
-                  欢迎使用 Earth
-                  Echoes。通过访问或使用本应用，即表示您同意受这些条款的约束。
+                  欢迎使用 Echoes Of The
+                  Stars。通过访问或使用本应用，即表示您同意受这些条款的约束。
                 </p>
                 <h4 className="text-white font-medium mt-4">2. 用户行为</h4>
                 <p>
@@ -132,7 +132,7 @@ export default function InfoPanel({
             onBack={() => setCurrentView("main")}
             content={
               <div className="space-y-4 text-white/80 text-sm leading-relaxed">
-                <p>Earth Echoes 目前提供的所有基础服务均为免费。</p>
+                <p>Echoes Of The Stars 目前提供的所有基础服务均为免费。</p>
                 <p>
                   如果未来推出付费增值服务（如 VIP
                   会员），我们将遵循以下退款原则：
