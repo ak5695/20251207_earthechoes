@@ -26,17 +26,17 @@ interface PostWithStats extends Post {
 const translations: Record<string, Record<string, string>> = {
   zh: {
     profile: "用户主页",
-    posts: "心情",
-    totalLikes: "获赞",
-    totalComments: "收到评论",
-    noPosts: "还没有发布心情",
+    posts: "思考",
+    totalLikes: "赞同",
+    totalComments: "评论",
+    noPosts: "还没有发布思考",
     region: "地区",
     joinedAt: "加入于",
-    vip: "VIP",
-    follow: "关注",
-    following: "关注中",
+    vip: "V",
+    follow: "关心",
+    following: "已关心",
     followers: "粉丝",
-    unfollow: "取消关注",
+    unfollow: "取消关心",
     sortBy: "排序",
     latest: "最新",
     mostLikes: "点赞最多",
@@ -51,7 +51,7 @@ const translations: Record<string, Record<string, string>> = {
     noPosts: "No moods posted yet",
     region: "Region",
     joinedAt: "Joined",
-    vip: "VIP",
+    vip: "V",
     follow: "Follow",
     following: "Following",
     followers: "Followers",
@@ -70,7 +70,7 @@ const translations: Record<string, Record<string, string>> = {
     noPosts: "まだ投稿がありません",
     region: "地域",
     joinedAt: "参加日",
-    vip: "VIP",
+    vip: "V",
     follow: "フォロー",
     following: "フォロー中",
     followers: "フォロワー",
@@ -89,7 +89,7 @@ const translations: Record<string, Record<string, string>> = {
     noPosts: "아직 게시물이 없습니다",
     region: "지역",
     joinedAt: "가입일",
-    vip: "VIP",
+    vip: "V",
     follow: "팔로우",
     following: "팔로잉",
     followers: "팔로워",
@@ -108,7 +108,7 @@ const translations: Record<string, Record<string, string>> = {
     noPosts: "Aucune publication",
     region: "Région",
     joinedAt: "Inscrit le",
-    vip: "VIP",
+    vip: "V",
     follow: "Suivre",
     following: "Abonné",
     followers: "Abonnés",
@@ -127,7 +127,7 @@ const translations: Record<string, Record<string, string>> = {
     noPosts: "Sin publicaciones",
     region: "Región",
     joinedAt: "Se unió",
-    vip: "VIP",
+    vip: "V",
     follow: "Seguir",
     following: "Siguiendo",
     followers: "Seguidores",
@@ -256,7 +256,7 @@ export default function UserProfilePanel({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center p-2"
       style={{ pointerEvents: "auto" }}
     >
       {/* Backdrop */}
@@ -272,7 +272,7 @@ export default function UserProfilePanel({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/100 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
@@ -281,7 +281,7 @@ export default function UserProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-4 pb-3 px-6 border-b border-white/10">
+        <div className="relative pt-3 pb-3 px-2 border-b border-white/10">
           {/* Close button */}
           <button
             onClick={() => {
@@ -373,7 +373,7 @@ export default function UserProfilePanel({
           </div>
 
           {/* Stats */}
-          <div className="flex justify-between mt-4 px-2">
+          <div className="flex justify-between mt-2 px-2">
             <div className="text-center">
               <div className="text-white text-xl font-light">
                 {posts.length}

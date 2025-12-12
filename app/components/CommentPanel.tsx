@@ -7,7 +7,14 @@ import UserProfilePanel from "./UserProfilePanel";
 import ShareModal from "./ShareModal";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
-import { Mars, Venus, CircleHelp, Share2, Trash2 } from "lucide-react";
+import {
+  Mars,
+  Venus,
+  CircleHelp,
+  Share2,
+  Trash2,
+  Bookmark,
+} from "lucide-react";
 import { trpc } from "../_trpc/client";
 
 // =============================================
@@ -60,8 +67,8 @@ const translations: Record<string, Record<string, string>> = {
     hideReplies: "收起回复",
     vip: "VIP",
     loginToComment: "登录后评论",
-    follow: "关注",
-    following: "已关注",
+    follow: "关心",
+    following: "已关心",
     delete: "删除",
     deleteConfirm: "确定删除这条评论吗？",
     contentDeleted: "内容已删除",
@@ -469,6 +476,12 @@ export default function CommentPanel({
     { enabled: !!post }
   );
 
+  // Bookmark status
+  const { data: bookmarkStatus } = trpc.post.getBookmarkStatus.useQuery(
+    { postId: post?.id || "", userId: currentUser?.id },
+    { enabled: !!post }
+  );
+
   const toggleLikeMutation = trpc.post.toggleLike.useMutation({
     onMutate: async (newTodo) => {
       await utils.post.getLikeStatus.cancel({
@@ -525,9 +538,49 @@ export default function CommentPanel({
     },
   });
 
+  const toggleBookmarkMutation = trpc.post.toggleBookmark.useMutation({
+    onMutate: async (newTodo) => {
+      await utils.post.getBookmarkStatus.cancel({
+        postId: newTodo.postId,
+        userId: newTodo.userId,
+      });
+      const previousStatus = utils.post.getBookmarkStatus.getData({
+        postId: newTodo.postId,
+        userId: newTodo.userId,
+      });
+
+      if (previousStatus) {
+        utils.post.getBookmarkStatus.setData(
+          { postId: newTodo.postId, userId: newTodo.userId },
+          { isBookmarked: !previousStatus.isBookmarked }
+        );
+      }
+      return { previousStatus };
+    },
+    onError: (err, newTodo, context) => {
+      if (context?.previousStatus) {
+        utils.post.getBookmarkStatus.setData(
+          { postId: newTodo.postId, userId: newTodo.userId },
+          context.previousStatus
+        );
+      }
+    },
+    onSettled: (data, error, variables) => {
+      utils.post.getBookmarkStatus.invalidate({
+        postId: variables.postId,
+        userId: variables.userId,
+      });
+      if (post) {
+        utils.user.getProfile.invalidate({ userId: currentUser?.id });
+      }
+    },
+  });
+
   const liked = likeStatus?.isLiked || false;
   const postLikesCount = likeStatus?.likesCount || post?.likes_count || 0;
   const [likeLoading, setLikeLoading] = useState(false);
+  const isBookmarked = bookmarkStatus?.isBookmarked || false;
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   // 查看用户资料状态
   const [viewingUser, setViewingUser] = useState<User | null>(null);
@@ -626,6 +679,28 @@ export default function CommentPanel({
       // Error handled in mutation callbacks
     } finally {
       setLikeLoading(false);
+    }
+  };
+
+  // 收藏/取消收藏
+  const handleBookmarkPost = async () => {
+    if (!currentUser || !post) {
+      onUserRequired();
+      return;
+    }
+
+    setBookmarkLoading(true);
+    triggerHapticFeedback();
+
+    try {
+      await toggleBookmarkMutation.mutateAsync({
+        postId: post.id,
+        userId: currentUser.id,
+      });
+    } catch (error) {
+      // Error handled in mutation callbacks
+    } finally {
+      setBookmarkLoading(false);
     }
   };
 
@@ -1107,11 +1182,27 @@ export default function CommentPanel({
                 <button
                   onClick={() => {
                     triggerHapticFeedback();
+                    handleBookmarkPost();
+                  }}
+                  disabled={bookmarkLoading}
+                  className={`flex items-center gap-1 hover:text-white transition-colors btn-interactive ${
+                    isBookmarked ? "text-yellow-400" : "text-white/40"
+                  }`}
+                >
+                  <Bookmark
+                    className="w-3.5 h-3.5"
+                    fill={isBookmarked ? "currentColor" : "none"}
+                  />
+                </button>
+                <button
+                  onClick={() => {
+                    triggerHapticFeedback();
                     setIsShareModalOpen(true);
                   }}
-                  className="flex items-center gap-1 hover:text-white transition-colors btn-interactive"
+                  className="flex items-center gap-1 text-white/60 hover:text-white transition-colors btn-interactive bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full"
                 >
                   <Share2 className="w-3.5 h-3.5" />
+                  <span className="text-xs">Share</span>
                 </button>
               </div>
             </div>

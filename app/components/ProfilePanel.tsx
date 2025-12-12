@@ -43,10 +43,10 @@ interface CommentWithUser extends Comment {
 const translations: Record<string, Record<string, string>> = {
   zh: {
     profile: "我的主页",
-    myPosts: "我的思考",
-    myBookmarks: "我的收藏",
-    totalLikes: "我的获赞",
-    totalComments: "收到评论",
+    myPosts: "思考",
+    myBookmarks: "收藏",
+    totalLikes: "赞同",
+    totalComments: "评论",
     noPosts: "还没有发布内容",
     noBookmarks: "还没有收藏内容",
     deleteConfirm: "确定删除这条内容吗？",
@@ -57,11 +57,11 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "条评论",
     noComments: "暂无评论",
-    followers: "被关注",
-    following: "关注中",
-    noFollowers: "暂无关注者",
-    noFollowing: "暂无关注",
-    noLikes: "暂无获赞",
+    followers: "朋友",
+    following: "关心",
+    noFollowers: "暂无联系者",
+    noFollowing: "暂无关心者",
+    noLikes: "暂无赞同",
     noReceivedComments: "暂无评论",
     sortBy: "排序",
     latest: "最新",
@@ -474,7 +474,7 @@ export default function ProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-4 pb-3 px-6 border-b border-white/10">
+        <div className="relative pt-3 pb-3 px-2 border-b border-white/10">
           {/* Close button */}
           <button
             onClick={() => {
@@ -645,7 +645,7 @@ export default function ProfilePanel({
           </div>
 
           {/* Stats as Tabs */}
-          <div className="flex flex-wrap gap-0 mt-4 pb-2 justify-between">
+          <div className="flex flex-nowrap gap-0 mt-2 pb-2 justify-between">
             <button
               onClick={() => setActiveTab("posts")}
               className={`flex flex-col items-center min-w-[50px] transition-opacity ${

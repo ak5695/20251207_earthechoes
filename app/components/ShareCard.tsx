@@ -25,7 +25,7 @@ export default function ShareCard({ post, language }: ShareCardProps) {
   const appUrl = "https://earthechoes.dufran.cn";
 
   return (
-    <div className="relative w-full aspect-[4/5] bg-gradient-to-b from-[#0B1026] to-[#2B32B2] p-6 flex flex-col justify-between overflow-hidden">
+    <div className="dark relative w-full aspect-[4/5] bg-gradient-to-b from-[#0B1026] to-[#2B32B2] p-6 flex flex-col justify-between overflow-hidden">
       {/* Starry Background */}
       <div className="absolute inset-0 pointer-events-none">
         {stars.map((star) => (
@@ -77,15 +77,6 @@ export default function ShareCard({ post, language }: ShareCardProps) {
             </span>
           </div>
         </div>
-
-        {/* Mood Tag */}
-        {post.mood && (
-          <div className="flex justify-center mb-8">
-            <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 text-sm backdrop-blur-sm border border-white/10">
-              #{post.mood}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Footer */}

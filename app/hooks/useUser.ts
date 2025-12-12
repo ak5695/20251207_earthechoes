@@ -96,7 +96,7 @@ export function useUser(): UseUserReturn {
 
             new Notification(title, {
               body,
-              icon: "/logo.webp",
+              icon: "/logo.svg",
             });
           }
         }

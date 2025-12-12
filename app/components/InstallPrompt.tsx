@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { X, Download } from "lucide-react";
 
 export default function InstallPrompt() {
@@ -73,8 +74,8 @@ export default function InstallPrompt() {
       <div className="bg-slate-900/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl flex flex-col gap-3 animate-in slide-in-from-bottom-10 fade-in duration-500">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shrink-0">
-              <Download className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-black/50 flex items-center justify-center shrink-0 overflow-hidden">
+              <Image src="/logo.svg" alt="App Icon" width={40} height={40} />
             </div>
             <div>
               <h3 className="font-medium text-white">Install App</h3>

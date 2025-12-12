@@ -27,9 +27,9 @@ export const metadata: Metadata = {
   description: "A global music co-creation platform",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.webp",
-    shortcut: "/logo.webp",
-    apple: "/logo.webp",
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
   },
   appleWebApp: {
     capable: true,
