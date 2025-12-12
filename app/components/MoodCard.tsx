@@ -30,7 +30,7 @@ export default function MoodCard({
 }: MoodCardProps) {
   return (
     <Card
-      className={`bg-slate-900/85 border-slate-700/50 backdrop-blur-xl shadow-2xl py-0 transition-colors ${
+      className={`bg-slate-900/200 border-slate-700/50 backdrop-blur-xl shadow-2xl py-0 transition-colors ${
         isLoading ? "cursor-wait" : "cursor-pointer hover:bg-slate-900/95"
       }`}
       onClick={() => {

@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 // import { Inter } from "next/font/google";
 
 import "./globals.css";
 import TrpcProvider from "./_trpc/provider";
 import ProgressBarProvider from "./providers/ProgressBarProvider";
+import InstallPrompt from "./components/InstallPrompt";
 
 // const inter = Inter({
 //   subsets: ["latin"],
@@ -13,13 +14,27 @@ import ProgressBarProvider from "./providers/ProgressBarProvider";
 //   fallback: ["system-ui", "arial"],
 // });
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "Echoes of the Stars - 星际回响",
   description: "A global music co-creation platform",
+  manifest: "/manifest.json",
   icons: {
     icon: "/logo.webp",
     shortcut: "/logo.webp",
     apple: "/logo.webp",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Earth Echoes",
   },
 };
 
@@ -32,7 +47,10 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`antialiased font-sans`}>
         <TrpcProvider>
-          <ProgressBarProvider>{children}</ProgressBarProvider>
+          <ProgressBarProvider>
+            {children}
+            <InstallPrompt />
+          </ProgressBarProvider>
         </TrpcProvider>
       </body>
     </html>

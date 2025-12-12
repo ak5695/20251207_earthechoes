@@ -464,7 +464,7 @@ export default function ProfilePanel({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/200 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}

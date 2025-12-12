@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
@@ -16,6 +16,7 @@
     "@dicebear/bottts-neutral": "^9.2.4",
     "@dicebear/core": "^9.2.4",
     "@dicebear/initials": "^9.2.4",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",

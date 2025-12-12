@@ -982,7 +982,7 @@ export default function CommentPanel({
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-linear-to-b from-gray-900/95 to-black/95 rounded-t-3xl max-h-[80vh] flex flex-col animate-panel-enter"
+        className="relative w-full max-w-lg bg-linear-to-b from-gray-900/200 to-black/95 rounded-t-3xl max-h-[80vh] flex flex-col animate-panel-enter"
         style={{ backdropFilter: "blur(20px)" }}
       >
         {/* Header */}
