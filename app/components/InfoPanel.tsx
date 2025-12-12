@@ -240,13 +240,13 @@ export default function InfoPanel({
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <h3 className="text-indigo-400 font-medium mb-2 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                    关于留言
+                    关于发布内容
                   </h3>
                   <p className="text-white/80 text-sm leading-relaxed">
-                    点击输入,可以输入留言。每个星点,是可点击的留言。留言卡片可点击查看评论详情。
+                    点击输入,可以输入内容。每个星点,是可点击的内容。内容卡片可点击查看评论详情。
                   </p>
                   <span className="text-white/60 mt-1 block text-xs">
-                    未登录用户的留言仅保存在本地设备，其他用户无法看到。只有注册并登录用户的留言，才能被其他用户看到并互动。
+                    未登录用户的内容仅保存在本地设备，其他用户无法看到。只有注册并登录用户的内容，才能被其他用户看到并互动。
                   </span>
                 </div>
 

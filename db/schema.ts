@@ -32,7 +32,7 @@ export const posts = pgTable("posts", {
   language: varchar("language", { length: 10 }).default("zh"),
   likesCount: integer("likes_count").default(0),
   commentsCount: integer("comments_count").default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const comments = pgTable("comments", {
@@ -111,4 +111,20 @@ export const postTopics = pgTable(
       pk: primaryKey({ columns: [table.postId, table.topicId] }),
     };
   }
+);
+
+export const follows = pgTable(
+  "follows",
+  {
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    followingId: uuid("following_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.followerId, table.followingId] }),
+  })
 );

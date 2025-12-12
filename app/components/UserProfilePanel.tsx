@@ -3,12 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { GeneratedAvatar } from "@/components/generated-avatar";
-import { X, Heart, MessageCircle, Mars, Venus, CircleHelp } from "lucide-react";
+import { X, Mars, Venus, CircleHelp } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { triggerHapticFeedback } from "../utils/haptics";
+import { trpc } from "../_trpc/client";
+import { PostItem } from "./PostItem";
 
 interface UserProfilePanelProps {
   user: User;
+  currentUser: User | null;
   onClose: () => void;
   onPostClick: (post: Post) => void;
   language: string;
@@ -24,12 +27,21 @@ const translations: Record<string, Record<string, string>> = {
   zh: {
     profile: "用户主页",
     posts: "心情",
-    totalLikes: "获得的赞",
-    totalComments: "收到的评论",
+    totalLikes: "获赞",
+    totalComments: "收到评论",
     noPosts: "还没有发布心情",
     region: "地区",
     joinedAt: "加入于",
     vip: "VIP",
+    follow: "关注",
+    following: "关注中",
+    followers: "粉丝",
+    unfollow: "取消关注",
+    sortBy: "排序",
+    latest: "最新",
+    mostLikes: "点赞最多",
+    mostComments: "评论最多",
+    mostBookmarks: "收藏最多",
   },
   en: {
     profile: "User Profile",
@@ -40,6 +52,15 @@ const translations: Record<string, Record<string, string>> = {
     region: "Region",
     joinedAt: "Joined",
     vip: "VIP",
+    follow: "Follow",
+    following: "Following",
+    followers: "Followers",
+    unfollow: "Unfollow",
+    sortBy: "Sort by",
+    latest: "Latest",
+    mostLikes: "Most Likes",
+    mostComments: "Most Comments",
+    mostBookmarks: "Most Bookmarks",
   },
   ja: {
     profile: "ユーザープロフィール",
@@ -50,6 +71,15 @@ const translations: Record<string, Record<string, string>> = {
     region: "地域",
     joinedAt: "参加日",
     vip: "VIP",
+    follow: "フォロー",
+    following: "フォロー中",
+    followers: "フォロワー",
+    unfollow: "フォロー解除",
+    sortBy: "並び替え",
+    latest: "最新",
+    mostLikes: "いいね順",
+    mostComments: "コメント順",
+    mostBookmarks: "ブックマーク順",
   },
   ko: {
     profile: "사용자 프로필",
@@ -60,6 +90,15 @@ const translations: Record<string, Record<string, string>> = {
     region: "지역",
     joinedAt: "가입일",
     vip: "VIP",
+    follow: "팔로우",
+    following: "팔로잉",
+    followers: "팔로워",
+    unfollow: "언팔로우",
+    sortBy: "정렬",
+    latest: "최신순",
+    mostLikes: "좋아요순",
+    mostComments: "댓글순",
+    mostBookmarks: "북마크순",
   },
   fr: {
     profile: "Profil Utilisateur",
@@ -70,6 +109,15 @@ const translations: Record<string, Record<string, string>> = {
     region: "Région",
     joinedAt: "Inscrit le",
     vip: "VIP",
+    follow: "Suivre",
+    following: "Abonné",
+    followers: "Abonnés",
+    unfollow: "Ne plus suivre",
+    sortBy: "Trier par",
+    latest: "Plus récent",
+    mostLikes: "Plus aimés",
+    mostComments: "Plus commentés",
+    mostBookmarks: "Plus favoris",
   },
   es: {
     profile: "Perfil de Usuario",
@@ -80,6 +128,15 @@ const translations: Record<string, Record<string, string>> = {
     region: "Región",
     joinedAt: "Se unió",
     vip: "VIP",
+    follow: "Seguir",
+    following: "Siguiendo",
+    followers: "Seguidores",
+    unfollow: "Dejar de seguir",
+    sortBy: "Ordenar por",
+    latest: "Más recientes",
+    mostLikes: "Más gustados",
+    mostComments: "Más comentados",
+    mostBookmarks: "Más favoritos",
   },
 };
 
@@ -94,57 +151,112 @@ function generateRandomAvatar(seed: string): string {
 
 export default function UserProfilePanel({
   user,
+  currentUser,
   onClose,
   onPostClick,
   language,
   isClosing = false,
 }: UserProfilePanelProps) {
   const t = translations[language] || translations.en;
-  const [posts, setPosts] = useState<PostWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalLikes, setTotalLikes] = useState(0);
-  const [totalComments, setTotalComments] = useState(0);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+  const utils = trpc.useUtils();
+
+  // Sorting state
+  const [sortOrder, setSortOrder] = useState<
+    "latest" | "likes" | "comments" | "bookmarks"
+  >("latest");
+
+  // Fetch profile data (posts + stats)
+  const { data: profileData, isLoading: loading } =
+    trpc.user.getProfile.useQuery({
+      userId: user.id,
+    });
+
+  // Fetch posts with sorting
+  const {
+    data: postsData,
+    isLoading: loadingPosts,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = trpc.user.getUserPosts.useInfiniteQuery(
+    {
+      userId: user.id,
+      sortBy: sortOrder,
+      limit: 10,
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    }
+  );
+
+  const posts = postsData?.pages.flatMap((page) => page.items) || [];
+  const totalLikes = profileData?.totalLikes || 0;
+  const totalComments = profileData?.totalComments || 0;
+
+  const { data: followStats } = trpc.user.getFollowStats.useQuery({
+    userId: user.id,
+  });
+  const { data: isFollowingData } = trpc.user.isFollowing.useQuery(
+    { followerId: currentUser?.id || "", followingId: user.id },
+    { enabled: !!currentUser }
+  );
+
+  const followersCount = followStats?.followersCount || 0;
+  const followingCount = followStats?.followingCount || 0;
+  const isFollowing = !!isFollowingData;
 
   const bgColor = generateRandomAvatar(user.id);
 
-  // Fetch user's posts
+  // Monitor profile data updates
   useEffect(() => {
-    async function fetchUserPosts() {
-      setLoading(true);
-      try {
-        const { data: postsData, error } = await supabase
-          .from("posts")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(20);
+    console.log("[UserProfilePanel] profileData updated:", {
+      totalLikes: profileData?.totalLikes,
+    });
+  }, [profileData]);
+
+  const handleFollow = async () => {
+    if (!currentUser) return;
+    setIsFollowLoading(true);
+    triggerHapticFeedback();
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", currentUser.id)
+          .eq("following_id", user.id);
 
         if (error) throw error;
-
-        setPosts(postsData || []);
-
-        // Calculate totals
-        let likes = 0;
-        let comments = 0;
-        (postsData || []).forEach((post) => {
-          likes += post.likes_count || 0;
-          comments += post.comments_count || 0;
+      } else {
+        // Follow
+        const { error } = await supabase.from("follows").insert({
+          follower_id: currentUser.id,
+          following_id: user.id,
         });
-        setTotalLikes(likes);
-        setTotalComments(comments);
-      } catch (err) {
-        console.error("Error fetching user posts:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    fetchUserPosts();
-  }, [user.id]);
+        if (error) throw error;
+      }
+
+      // Invalidate queries to refresh data
+      utils.user.getFollowStats.invalidate({ userId: user.id });
+      utils.user.isFollowing.invalidate({
+        followerId: currentUser.id,
+        followingId: user.id,
+      });
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
       style={{ pointerEvents: "auto" }}
     >
       {/* Backdrop */}
@@ -160,7 +272,7 @@ export default function UserProfilePanel({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
@@ -184,7 +296,7 @@ export default function UserProfilePanel({
           {/* Avatar and User Info */}
           <div className="flex items-center gap-4">
             <GeneratedAvatar seed={user.nickname} className="w-16 h-16" />
-            <div>
+            <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-white text-xl font-medium">
                   <TypingAnimation
@@ -209,6 +321,25 @@ export default function UserProfilePanel({
                   <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
                     {t.vip}
                   </span>
+                )}
+                {currentUser && currentUser.id !== user.id && (
+                  <button
+                    onClick={handleFollow}
+                    disabled={isFollowLoading}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1 shrink-0 ${
+                      isFollowing
+                        ? "bg-white/10 text-white/60 hover:bg-white/20"
+                        : "bg-white text-black hover:bg-white/90"
+                    }`}
+                  >
+                    {isFollowLoading ? (
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    ) : isFollowing ? (
+                      t.following
+                    ) : (
+                      t.follow
+                    )}
+                  </button>
                 )}
               </div>
               {user.region && (
@@ -237,34 +368,64 @@ export default function UserProfilePanel({
                 </TypingAnimation>
               </p>
             </div>
+
+            {/* Follow Button */}
           </div>
 
           {/* Stats */}
-          <div className="flex gap-6 mt-2">
+          <div className="flex justify-between mt-4 px-2">
             <div className="text-center">
-              <div className="text-white text-2xl font-light">
+              <div className="text-white text-xl font-light">
                 {posts.length}
               </div>
               <div className="text-white/50 text-xs">{t.posts}</div>
             </div>
             <div className="text-center">
-              <div className="text-red-400 text-2xl font-light">
+              <div className="text-white text-xl font-light">
+                {followersCount}
+              </div>
+              <div className="text-white/50 text-xs">{t.followers}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-white text-xl font-light">
+                {followingCount}
+              </div>
+              <div className="text-white/50 text-xs">{t.following}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-red-400 text-xl font-light">
                 {totalLikes}
               </div>
               <div className="text-white/50 text-xs">{t.totalLikes}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-blue-400 text-2xl font-light">
-                {totalComments}
-              </div>
-              <div className="text-white/50 text-xs">{t.totalComments}</div>
             </div>
           </div>
         </div>
 
         {/* Posts List */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {loading ? (
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {/* Sorting Controls */}
+          <div className="sticky top-0 z-30 backdrop-blur-md py-2 -mx-4 px-4 mb-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+            {(["latest", "likes", "comments", "bookmarks"] as const).map(
+              (sort) => (
+                <button
+                  key={sort}
+                  onClick={() => setSortOrder(sort)}
+                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                    sortOrder === sort
+                      ? "bg-white text-black font-medium"
+                      : "bg-white/10 text-white/60 hover:bg-white/20"
+                  }`}
+                >
+                  {sort === "latest" && t.latest}
+                  {sort === "likes" && t.mostLikes}
+                  {sort === "comments" && t.mostComments}
+                  {sort === "bookmarks" && t.mostBookmarks}
+                </button>
+              )
+            )}
+          </div>
+
+          {loading || loadingPosts ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             </div>
@@ -273,47 +434,27 @@ export default function UserProfilePanel({
           ) : (
             <div className="space-y-4">
               {posts.map((post) => (
-                <div
+                <PostItem
                   key={post.id}
-                  className="bg-white/5 rounded-xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors relative z-20"
-                  style={{ pointerEvents: "auto" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    triggerHapticFeedback();
-                    onPostClick(post);
-                  }}
-                >
-                  {/* Post Content */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                          backgroundColor: post.color || "#6366f1",
-                          boxShadow: `0 0 8px ${post.color || "#6366f1"}`,
-                        }}
-                      />
-                      <span className="text-white/40 text-xs">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-white/90 text-sm mb-3">{post.content}</p>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1 text-red-400/80">
-                      <Heart className="w-3.5 h-3.5" fill="currentColor" />
-                      {post.likes_count || 0}
-                    </span>
-                    <span className="flex items-center gap-1 text-blue-400/80">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      {post.comments_count || 0}
-                    </span>
-                  </div>
-                </div>
+                  post={post}
+                  currentUser={currentUser}
+                  onPostClick={onPostClick}
+                />
               ))}
+
+              {hasNextPage && (
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="w-full py-3 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm"
+                >
+                  {isFetchingNextPage ? (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mx-auto" />
+                  ) : (
+                    "Load More"
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>

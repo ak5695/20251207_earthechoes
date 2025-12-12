@@ -28,6 +28,13 @@ export function TypingAnimationLite({
 
   const characters = useMemo(() => Array.from(children), [children]);
 
+  // Reset when children changes
+  useEffect(() => {
+    setDisplayedText("");
+    setIsComplete(false);
+    setStarted(delay === 0);
+  }, [children, delay]);
+
   // 延迟开始
   useEffect(() => {
     if (delay > 0) {

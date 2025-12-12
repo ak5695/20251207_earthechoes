@@ -4,9 +4,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { supabase, Post, Comment, User, Like } from "@/lib/supabase";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import UserProfilePanel from "./UserProfilePanel";
+import ShareModal from "./ShareModal";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
-import { Mars, Venus, CircleHelp } from "lucide-react";
+import { Mars, Venus, CircleHelp, Share2, Trash2 } from "lucide-react";
+import { trpc } from "../_trpc/client";
 
 // =============================================
 // Types
@@ -29,6 +31,7 @@ interface CommentPanelProps {
   onPostClick?: (post: PostWithUser) => void;
   onUserClick?: (user: User) => void;
   language: string;
+  highlightCommentId?: string | null;
 }
 
 type SortType = "recommend" | "hot" | "new";
@@ -57,6 +60,11 @@ const translations: Record<string, Record<string, string>> = {
     hideReplies: "收起回复",
     vip: "VIP",
     loginToComment: "登录后评论",
+    follow: "关注",
+    following: "已关注",
+    delete: "删除",
+    deleteConfirm: "确定删除这条评论吗？",
+    contentDeleted: "内容已删除",
   },
   en: {
     comments: "Comments",
@@ -78,6 +86,11 @@ const translations: Record<string, Record<string, string>> = {
     hideReplies: "Hide replies",
     vip: "VIP",
     loginToComment: "Login to comment",
+    follow: "Follow",
+    following: "Following",
+    delete: "Delete",
+    deleteConfirm: "Delete this comment?",
+    contentDeleted: "Content deleted",
   },
   ja: {
     comments: "コメント",
@@ -231,6 +244,8 @@ function CommentItem({
   language,
   isReply = false,
   onViewProfile,
+  onDelete,
+  expandedIds,
 }: {
   comment: CommentWithUser;
   currentUser: User | null;
@@ -240,15 +255,26 @@ function CommentItem({
   language: string;
   isReply?: boolean;
   onViewProfile: (user: User) => void;
+  onDelete: (commentId: string) => void;
+  expandedIds?: Set<string>;
 }) {
   const t = translations[language] || translations.en;
   const [showReplies, setShowReplies] = useState(false);
+
+  useEffect(() => {
+    if (expandedIds?.has(comment.id)) {
+      setShowReplies(true);
+    }
+  }, [expandedIds, comment.id]);
+
   const isLiked = likedComments.has(comment.id);
+  const isOwner = currentUser?.id === comment.user_id;
 
   return (
     <div
+      id={`comment-${comment.id}`}
       className={`flex gap-3 ${
-        isReply ? "ml-12 mt-3" : "py-4 border-b border-white/10"
+        isReply ? "ml-0 mt-3" : "py-4 border-b border-white/10"
       }`}
     >
       <Avatar
@@ -259,29 +285,45 @@ function CommentItem({
 
       <div className="flex-1 min-w-0">
         {/* User Info */}
-        <div className="flex items-center gap-2 mb-1">
-          <span
-            className="text-white/90 font-medium text-sm cursor-pointer hover:text-white transition-colors"
-            onClick={() => onViewProfile(comment.user)}
-          >
-            {comment.user.nickname}
-          </span>
-          {comment.user.gender === "male" && (
-            <Mars className="w-3 h-3 text-indigo-400" />
-          )}
-          {comment.user.gender === "female" && (
-            <Venus className="w-3 h-3 text-pink-400" />
-          )}
-          {(!comment.user.gender || comment.user.gender === "unknown") && (
-            <CircleHelp className="w-3 h-3 text-gray-400" />
-          )}
-          {comment.user.is_vip && (
-            <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
-              {t.vip}
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-white/90 font-medium text-sm cursor-pointer hover:text-white transition-colors"
+              onClick={() => onViewProfile(comment.user)}
+            >
+              {comment.user.nickname}
             </span>
-          )}
-          {comment.user.region && (
-            <span className="text-white/40 text-xs">{comment.user.region}</span>
+            {comment.user.gender === "male" && (
+              <Mars className="w-3 h-3 text-indigo-400" />
+            )}
+            {comment.user.gender === "female" && (
+              <Venus className="w-3 h-3 text-pink-400" />
+            )}
+            {(!comment.user.gender || comment.user.gender === "unknown") && (
+              <CircleHelp className="w-3 h-3 text-gray-400" />
+            )}
+            {comment.user.is_vip && (
+              <span className="px-1.5 py-0.5 bg-linear-to-r from-yellow-500 to-orange-500 text-white text-xs rounded font-medium">
+                {t.vip}
+              </span>
+            )}
+            {comment.user.region && (
+              <span className="text-white/40 text-xs">
+                {comment.user.region}
+              </span>
+            )}
+          </div>
+
+          {isOwner && (
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                onDelete(comment.id);
+              }}
+              className="text-white/20 hover:text-red-400 transition-colors p-1"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
           )}
         </div>
 
@@ -368,6 +410,8 @@ function CommentItem({
                     language={language}
                     isReply
                     onViewProfile={onViewProfile}
+                    onDelete={onDelete}
+                    expandedIds={expandedIds}
                   />
                 ))}
               </div>
@@ -390,21 +434,154 @@ export default function CommentPanel({
   onPostClick,
   onUserClick,
   language,
+  highlightCommentId,
 }: CommentPanelProps) {
   const t = translations[language] || translations.en;
   const [comments, setComments] = useState<CommentWithUser[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [sortType, setSortType] = useState<SortType>("recommend");
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<CommentWithUser | null>(null);
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
-  const [liked, setLiked] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(post?.comments_count || 0);
+
+  useEffect(() => {
+    setCommentsCount(post?.comments_count || 0);
+  }, [post?.comments_count]);
+
+  // tRPC hooks
+  const utils = trpc.useUtils();
+
+  // Follow status
+  const { data: isFollowingData } = trpc.user.isFollowing.useQuery(
+    { followerId: currentUser?.id || "", followingId: post?.user.id || "" },
+    { enabled: !!currentUser && !!post }
+  );
+  const isFollowing = !!isFollowingData;
+
+  // Like status
+  const { data: likeStatus } = trpc.post.getLikeStatus.useQuery(
+    { postId: post?.id || "", userId: currentUser?.id },
+    { enabled: !!post }
+  );
+
+  const toggleLikeMutation = trpc.post.toggleLike.useMutation({
+    onMutate: async (newTodo) => {
+      await utils.post.getLikeStatus.cancel({
+        postId: newTodo.postId,
+        userId: newTodo.userId,
+      });
+      const previousStatus = utils.post.getLikeStatus.getData({
+        postId: newTodo.postId,
+        userId: newTodo.userId,
+      });
+
+      if (previousStatus) {
+        const newStatus = {
+          isLiked: !previousStatus.isLiked,
+          likesCount: previousStatus.isLiked
+            ? previousStatus.likesCount - 1
+            : previousStatus.likesCount + 1,
+        };
+
+        console.log(
+          previousStatus.isLiked
+            ? "Already liked, toggling to unlike"
+            : "Not liked, toggling to like",
+          "Previous:",
+          previousStatus,
+          "New:",
+          newStatus
+        );
+
+        utils.post.getLikeStatus.setData(
+          { postId: newTodo.postId, userId: newTodo.userId },
+          newStatus
+        );
+      }
+      return { previousStatus };
+    },
+    onError: (err, newTodo, context) => {
+      console.error("Error toggling like:", err);
+      if (context?.previousStatus) {
+        utils.post.getLikeStatus.setData(
+          { postId: newTodo.postId, userId: newTodo.userId },
+          context.previousStatus
+        );
+      }
+    },
+    onSettled: (data, error, variables) => {
+      utils.post.getLikeStatus.invalidate({
+        postId: variables.postId,
+        userId: variables.userId,
+      });
+      if (post) {
+        utils.user.getProfile.invalidate({ userId: post.user.id });
+      }
+    },
+  });
+
+  const liked = likeStatus?.isLiked || false;
+  const postLikesCount = likeStatus?.likesCount || post?.likes_count || 0;
   const [likeLoading, setLikeLoading] = useState(false);
-  const [postLikesCount, setPostLikesCount] = useState(post?.likes_count ?? 0);
 
   // 查看用户资料状态
   const [viewingUser, setViewingUser] = useState<User | null>(null);
+
+  const handleFollow = async () => {
+    if (!currentUser || !post) return;
+    setIsFollowLoading(true);
+    triggerHapticFeedback();
+
+    // Optimistic update
+    const previousIsFollowing = isFollowing;
+    utils.user.isFollowing.setData(
+      { followerId: currentUser.id, followingId: post.user.id },
+      !previousIsFollowing
+    );
+
+    try {
+      if (previousIsFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", currentUser.id)
+          .eq("following_id", post.user.id);
+
+        if (error) throw error;
+      } else {
+        // Follow
+        const { error } = await supabase.from("follows").insert({
+          follower_id: currentUser.id,
+          following_id: post.user.id,
+        });
+
+        if (error) throw error;
+      }
+
+      // Invalidate to ensure consistency
+      utils.user.isFollowing.invalidate({
+        followerId: currentUser.id,
+        followingId: post.user.id,
+      });
+      utils.user.getFollowStats.invalidate({ userId: post.user.id });
+    } catch (err) {
+      console.error("Error toggling follow:", err);
+      // Revert optimistic update
+      utils.user.isFollowing.setData(
+        { followerId: currentUser.id, followingId: post.user.id },
+        previousIsFollowing
+      );
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
   const [isProfileClosing, setIsProfileClosing] = useState(false);
 
   // 处理查看用户资料
@@ -430,48 +607,23 @@ export default function CommentPanel({
     }, 300);
   }, []);
 
-  // 查询当前用户是否已点赞
-  useEffect(() => {
-    async function fetchLiked() {
-      if (!currentUser || !post) return;
-      const { data } = await supabase
-        .from("likes")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .eq("post_id", post.id)
-        .maybeSingle();
-      setLiked(!!data);
-    }
-    fetchLiked();
-  }, [currentUser, post]);
-
   // 点赞/取消点赞
   const handleLikePost = async () => {
     if (!currentUser || !post) {
       onUserRequired();
       return;
     }
+
     setLikeLoading(true);
+    triggerHapticFeedback();
+
     try {
-      if (!liked) {
-        // 点赞
-        await supabase
-          .from("likes")
-          .insert({ user_id: currentUser.id, post_id: post.id });
-        setLiked(true);
-        setPostLikesCount((c) => c + 1);
-      } else {
-        // 取消点赞
-        await supabase
-          .from("likes")
-          .delete()
-          .eq("user_id", currentUser.id)
-          .eq("post_id", post.id);
-        setLiked(false);
-        setPostLikesCount((c) => Math.max(0, c - 1));
-      }
-    } catch (err) {
-      // 错误处理
+      await toggleLikeMutation.mutateAsync({
+        postId: post.id,
+        userId: currentUser.id,
+      });
+    } catch (error) {
+      // Error handled in mutation callbacks
     } finally {
       setLikeLoading(false);
     }
@@ -598,6 +750,38 @@ export default function CommentPanel({
     fetchLikedComments();
   }, [fetchComments, fetchLikedComments]);
 
+  useEffect(() => {
+    if (highlightCommentId && comments.length > 0) {
+      let found = false;
+      for (const comment of comments) {
+        if (comment.id === highlightCommentId) {
+          found = true;
+          break;
+        }
+        if (comment.replies?.some((r) => r.id === highlightCommentId)) {
+          setExpandedIds((prev) => new Set(prev).add(comment.id));
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
+        setTimeout(() => {
+          const el = document.getElementById(`comment-${highlightCommentId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add(
+              "bg-white/10",
+              "transition-colors",
+              "duration-1000"
+            );
+            setTimeout(() => el.classList.remove("bg-white/10"), 2000);
+          }
+        }, 300);
+      }
+    }
+  }, [highlightCommentId, comments]);
+
   // Handle like
   const handleLike = async (commentId: string) => {
     if (!currentUser) {
@@ -667,6 +851,40 @@ export default function CommentPanel({
     }
   };
 
+  // Handle delete comment
+  const handleDelete = async (commentId: string) => {
+    if (!confirm(t.deleteConfirm)) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .update({ content: t.contentDeleted })
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      // Update local state
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) {
+            return { ...c, content: t.contentDeleted };
+          }
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === commentId ? { ...r, content: t.contentDeleted } : r
+              ),
+            };
+          }
+          return c;
+        })
+      );
+    } catch (err) {
+      console.error("Error deleting comment:", err);
+    }
+  };
+
   // Handle send comment
   const handleSend = async () => {
     if (!currentUser) {
@@ -718,6 +936,8 @@ export default function CommentPanel({
         setComments((prev) => [commentWithUser, ...prev]);
       }
 
+      setCommentsCount((prev) => prev + 1);
+
       // Create notification
       if (replyingTo && replyingTo.user_id !== currentUser.id) {
         await supabase.from("notifications").insert({
@@ -766,40 +986,6 @@ export default function CommentPanel({
         style={{ backdropFilter: "blur(20px)" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <h2 className="text-white font-medium">
-            <TypingAnimation
-              duration={80}
-              delay={200}
-              showCursor={false}
-              className="text-white font-medium"
-            >
-              {`${t.comments} (${post.comments_count})`}
-            </TypingAnimation>
-          </h2>
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onClose();
-            }}
-            className="text-white/60 hover:text-white transition-colors btn-icon"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
         {/* Post Content Card */}
         <div className="px-5 py-4 border-b border-white/10">
           <div className="flex items-start gap-3">
@@ -833,6 +1019,55 @@ export default function CommentPanel({
                 {post.mood && (
                   <span className="text-white/40 text-xs">#{post.mood}</span>
                 )}
+
+                <div className="ml-auto flex items-center gap-3">
+                  {/* Follow Button */}
+                  {currentUser && currentUser.id !== post.user.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollow();
+                      }}
+                      disabled={isFollowLoading}
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+                        isFollowing
+                          ? "text-white/40 bg-white/5 hover:bg-white/10"
+                          : "text-black bg-white hover:bg-white/90"
+                      }`}
+                    >
+                      {isFollowLoading ? (
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : isFollowing ? (
+                        t.following || "Following"
+                      ) : (
+                        t.follow || "Follow"
+                      )}
+                    </button>
+                  )}
+
+                  {/* Close Button */}
+                  <button
+                    onClick={() => {
+                      triggerHapticFeedback();
+                      onClose();
+                    }}
+                    className="text-white/60 hover:text-white transition-colors btn-icon"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <p className="text-white/80 text-sm leading-relaxed wrap-break-word">
                 {post.content}
@@ -867,8 +1102,17 @@ export default function CommentPanel({
                   >
                     <path d="M21 15a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2v8z" />
                   </svg>
-                  {post.comments_count}
+                  {commentsCount}
                 </span>
+                <button
+                  onClick={() => {
+                    triggerHapticFeedback();
+                    setIsShareModalOpen(true);
+                  }}
+                  className="flex items-center gap-1 hover:text-white transition-colors btn-interactive"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           </div>
@@ -915,6 +1159,8 @@ export default function CommentPanel({
                 likedComments={likedComments}
                 language={language}
                 onViewProfile={handleViewProfile}
+                onDelete={handleDelete}
+                expandedIds={expandedIds}
               />
             ))
           )}
@@ -1011,6 +1257,7 @@ export default function CommentPanel({
       {viewingUser && !onUserClick && (
         <UserProfilePanel
           user={viewingUser}
+          currentUser={currentUser}
           onClose={handleCloseProfile}
           onPostClick={(clickedPost) => {
             // Close profile panel
@@ -1024,6 +1271,14 @@ export default function CommentPanel({
           isClosing={isProfileClosing}
         />
       )}
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        post={post}
+        language={language}
+      />
     </div>
   );
 }

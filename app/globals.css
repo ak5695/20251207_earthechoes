@@ -152,6 +152,23 @@ body {
   animation: slide-in-from-right 0.3s ease-out forwards;
 }
 
+/* 呼吸灯效果 - 忽明忽暗 */
+@keyframes breathe-light {
+  0%,
+  100% {
+    opacity: 0.85;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.animate-breathe {
+  animation: breathe-light 4s ease-in-out infinite;
+}
+
 /* 卡片进入动画 - 诗意的浮现效果 */
 @keyframes card-emerge {
   0% {
@@ -668,4 +685,15 @@ input[type="button"],
 .btn-glow,
 .btn-close-hint {
   cursor: url("/cursor.svg") 16 16, pointer !important;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

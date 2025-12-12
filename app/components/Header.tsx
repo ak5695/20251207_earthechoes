@@ -93,13 +93,22 @@ export default function Header({
                 onOpenUserSetup();
               }
             }}
-            className="w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon p-0"
+            className="relative w-10 h-10 rounded-full border flex items-center justify-center overflow-hidden bg-white/20 hover:bg-white/30 transition-colors btn-icon p-0"
           >
             {currentUser ? (
-              <GeneratedAvatar
-                seed={currentUser.nickname}
-                className="w-[38px] h-[38px] cursor-pointer"
-              />
+              <>
+                <GeneratedAvatar
+                  seed={currentUser.nickname}
+                  className="w-[38px] h-[38px] cursor-pointer"
+                />
+                {unreadNotifications > 0 && (
+                  <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center px-1 border-2 border-black">
+                    <span className="text-[10px] font-bold text-white leading-none">
+                      {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                    </span>
+                  </div>
+                )}
+              </>
             ) : (
               <svg
                 className="w-5 h-5 text-white/60"

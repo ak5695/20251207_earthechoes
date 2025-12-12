@@ -13,10 +13,13 @@ import {
   Mars,
   Venus,
   CircleHelp,
+  Bookmark,
 } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
+import { trpc } from "../_trpc/client";
+import { PostItem } from "./PostItem";
 
 interface ProfilePanelProps {
   currentUser: User;
@@ -26,6 +29,7 @@ interface ProfilePanelProps {
   onUpdateUser: (user: User) => void;
   language: string;
   isClosing?: boolean;
+  onUserClick?: (user: User) => void;
 }
 
 interface PostWithStats extends Post {
@@ -39,11 +43,13 @@ interface CommentWithUser extends Comment {
 const translations: Record<string, Record<string, string>> = {
   zh: {
     profile: "我的主页",
-    myPosts: "我的心情",
-    totalLikes: "获得的赞",
-    totalComments: "收到的评论",
-    noPosts: "还没有发布心情",
-    deleteConfirm: "确定删除这条心情吗？",
+    myPosts: "我的思考",
+    myBookmarks: "我的收藏",
+    totalLikes: "我的获赞",
+    totalComments: "收到评论",
+    noPosts: "还没有发布内容",
+    noBookmarks: "还没有收藏内容",
+    deleteConfirm: "确定删除这条内容吗？",
     logout: "退出登录",
     logoutConfirm: "确定要退出登录吗？",
     region: "地区",
@@ -51,13 +57,26 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "条评论",
     noComments: "暂无评论",
+    followers: "被关注",
+    following: "关注中",
+    noFollowers: "暂无关注者",
+    noFollowing: "暂无关注",
+    noLikes: "暂无获赞",
+    noReceivedComments: "暂无评论",
+    sortBy: "排序",
+    latest: "最新",
+    mostLikes: "点赞最多",
+    mostComments: "评论最多",
+    mostBookmarks: "收藏最多",
   },
   en: {
     profile: "My Profile",
     myPosts: "My Moods",
+    myBookmarks: "My Bookmarks",
     totalLikes: "Likes Received",
     totalComments: "Comments Received",
     noPosts: "No moods posted yet",
+    noBookmarks: "No bookmarks yet",
     deleteConfirm: "Delete this mood?",
     logout: "Log Out",
     logoutConfirm: "Are you sure you want to log out?",
@@ -66,13 +85,26 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "comments",
     noComments: "No comments yet",
+    followers: "Followers",
+    following: "Following",
+    noFollowers: "No followers yet",
+    noFollowing: "Not following anyone",
+    noLikes: "No likes received yet",
+    noReceivedComments: "No comments received yet",
+    sortBy: "Sort by",
+    latest: "Latest",
+    mostLikes: "Most Likes",
+    mostComments: "Most Comments",
+    mostBookmarks: "Most Bookmarks",
   },
   ja: {
     profile: "マイページ",
     myPosts: "私の気持ち",
+    myBookmarks: "ブックマーク",
     totalLikes: "いいね数",
     totalComments: "コメント数",
     noPosts: "まだ投稿がありません",
+    noBookmarks: "ブックマークはありません",
     deleteConfirm: "この投稿を削除しますか？",
     logout: "ログアウト",
     logoutConfirm: "ログアウトしますか？",
@@ -81,13 +113,22 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "件のコメント",
     noComments: "コメントはありません",
+    followers: "フォロワー",
+    following: "フォロー中",
+    sortBy: "並び替え",
+    latest: "最新",
+    mostLikes: "いいね順",
+    mostComments: "コメント順",
+    mostBookmarks: "ブックマーク順",
   },
   ko: {
     profile: "내 프로필",
     myPosts: "내 감정",
+    myBookmarks: "내 북마크",
     totalLikes: "받은 좋아요",
     totalComments: "받은 댓글",
     noPosts: "아직 게시물이 없습니다",
+    noBookmarks: "북마크가 없습니다",
     deleteConfirm: "이 게시물을 삭제하시겠습니까?",
     logout: "로그아웃",
     logoutConfirm: "로그아웃하시겠습니까?",
@@ -96,13 +137,22 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "개의 댓글",
     noComments: "댓글이 없습니다",
+    followers: "팔로워",
+    following: "팔로잉",
+    sortBy: "정렬",
+    latest: "최신순",
+    mostLikes: "좋아요순",
+    mostComments: "댓글순",
+    mostBookmarks: "북마크순",
   },
   fr: {
     profile: "Mon Profil",
     myPosts: "Mes Humeurs",
+    myBookmarks: "Mes Favoris",
     totalLikes: "J'aimes Reçus",
     totalComments: "Commentaires Reçus",
     noPosts: "Aucune publication",
+    noBookmarks: "Aucun favori",
     deleteConfirm: "Supprimer cette publication ?",
     logout: "Déconnexion",
     logoutConfirm: "Voulez-vous vous déconnecter ?",
@@ -111,13 +161,22 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "commentaires",
     noComments: "Aucun commentaire",
+    followers: "Abonnés",
+    following: "Abonné",
+    sortBy: "Trier par",
+    latest: "Plus récent",
+    mostLikes: "Plus aimés",
+    mostComments: "Plus commentés",
+    mostBookmarks: "Plus favoris",
   },
   es: {
     profile: "Mi Perfil",
     myPosts: "Mis Estados",
+    myBookmarks: "Mis Favoritos",
     totalLikes: "Me Gusta Recibidos",
     totalComments: "Comentarios Recibidos",
     noPosts: "Sin publicaciones",
+    noBookmarks: "Sin favoritos",
     deleteConfirm: "¿Eliminar esta publicación?",
     logout: "Cerrar Sesión",
     logoutConfirm: "¿Desea cerrar sesión?",
@@ -126,6 +185,13 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     comments: "comentarios",
     noComments: "Sin comentarios",
+    followers: "Seguidores",
+    following: "Siguiendo",
+    sortBy: "Ordenar por",
+    latest: "Más recientes",
+    mostLikes: "Más gustados",
+    mostComments: "Más comentados",
+    mostBookmarks: "Más favoritos",
   },
 };
 
@@ -146,15 +212,178 @@ export default function ProfilePanel({
   onUpdateUser,
   language,
   isClosing = false,
+  onUserClick,
 }: ProfilePanelProps) {
   const t = translations[language] || translations.en;
+  const listRef = React.useRef<HTMLDivElement>(null);
 
-  const [posts, setPosts] = useState<PostWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalLikes, setTotalLikes] = useState(0);
-  const [totalComments, setTotalComments] = useState(0);
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  // tRPC
+  const utils = trpc.useUtils();
+  const { data: profileData, isLoading: loading } =
+    trpc.user.getProfile.useQuery({
+      userId: currentUser.id,
+    });
+
+  const [activeTab, setActiveTab] = useState<
+    "posts" | "bookmarks" | "followers" | "following" | "likes" | "comments"
+  >("posts");
+
+  // Sorting state
+  const [sortOrder, setSortOrder] = useState<
+    "latest" | "likes" | "comments" | "bookmarks"
+  >("latest");
+
+  // Fetch posts with sorting
+  const {
+    data: postsData,
+    isLoading: loadingPosts,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = trpc.user.getUserPosts.useInfiniteQuery(
+    {
+      userId: currentUser.id,
+      sortBy: sortOrder,
+      limit: 10,
+    },
+    {
+      enabled: activeTab === "posts",
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    }
+  );
+
+  const posts = postsData?.pages.flatMap((page) => page.items) || [];
+  const totalLikes = profileData?.totalLikes || 0;
+  const totalComments = profileData?.totalComments || 0;
+  const totalBookmarks = profileData?.totalBookmarks || 0;
+
+  const { data: followStats } = trpc.user.getFollowStats.useQuery({
+    userId: currentUser.id,
+  });
+  const followersCount = followStats?.followersCount || 0;
+  const followingCount = followStats?.followingCount || 0;
+
+  // Bookmarks
+  const { data: bookmarksData, isLoading: loadingBookmarks } =
+    trpc.user.getBookmarks.useQuery(
+      { userId: currentUser.id },
+      { enabled: activeTab === "bookmarks" }
+    );
+  const bookmarks = bookmarksData || [];
+
+  // Followers
+  const { data: followersData, isLoading: loadingFollowers } =
+    trpc.user.getFollowers.useQuery(
+      { userId: currentUser.id },
+      { enabled: activeTab === "followers" }
+    );
+  const followers = followersData || [];
+
+  // Following
+  const { data: followingData, isLoading: loadingFollowing } =
+    trpc.user.getFollowing.useQuery(
+      { userId: currentUser.id },
+      { enabled: activeTab === "following" }
+    );
+  const following = followingData || [];
+
+  // Received Likes
+  const { data: likesData, isLoading: loadingLikes } =
+    trpc.user.getReceivedLikes.useQuery(
+      { userId: currentUser.id },
+      { enabled: activeTab === "likes" }
+    );
+  const receivedLikes = likesData || [];
+
+  // Received Comments
+  const { data: commentsData, isLoading: loadingComments } =
+    trpc.user.getReceivedComments.useQuery(
+      { userId: currentUser.id },
+      { enabled: activeTab === "comments" }
+    );
+  const receivedComments = commentsData || [];
+
+  // Unread Notifications
+  const { data: unreadNotifications } =
+    trpc.user.getUnreadNotifications.useQuery(
+      { userId: currentUser.id },
+      { refetchInterval: 5000 }
+    );
+
+  const unreadLikes = React.useMemo(() => {
+    if (!unreadNotifications) return new Set<string>();
+    return new Set(
+      unreadNotifications
+        .filter((n) => n.type === "like")
+        .map((n) => `${n.post_id}-${n.from_user_id}`)
+    );
+  }, [unreadNotifications]);
+
+  const unreadComments = React.useMemo(() => {
+    if (!unreadNotifications) return new Set<string>();
+    return new Set(
+      unreadNotifications
+        .filter((n) => n.type === "comment" || n.type === "reply")
+        .map((n) => n.comment_id)
+    );
+  }, [unreadNotifications]);
+
+  const markReadMutation = trpc.user.markNotificationsRead.useMutation({
+    onSuccess: () => {
+      utils.user.getUnreadNotifications.invalidate();
+    },
+  });
+
+  useEffect(() => {
+    if (activeTab === "likes" && unreadLikes.size > 0) {
+      markReadMutation.mutate({ userId: currentUser.id, type: "like" });
+    } else if (activeTab === "comments" && unreadComments.size > 0) {
+      markReadMutation.mutate({ userId: currentUser.id, type: "comment" });
+    }
+  }, [activeTab, unreadLikes.size, unreadComments.size]);
+
+  // Restore scroll position
+  // useEffect(() => {
+  //   const savedScroll = sessionStorage.getItem(
+  //     `profile_panel_scroll_${activeTab}`
+  //   );
+  //   if (savedScroll && listRef.current) {
+  //     // Small delay to ensure content is rendered
+  //     setTimeout(() => {
+  //       if (listRef.current) {
+  //         listRef.current.scrollTop = parseInt(savedScroll);
+  //       }
+  //     }, 100);
+  //   }
+  // }, [
+  //   activeTab,
+  //   postsData,
+  //   bookmarksData,
+  //   followersData,
+  //   followingData,
+  //   likesData,
+  //   commentsData,
+  // ]);
+
+  const handleSaveScroll = () => {
+    // if (listRef.current) {
+    //   sessionStorage.setItem(
+    //     `profile_panel_scroll_${activeTab}`,
+    //     listRef.current.scrollTop.toString()
+    //   );
+    // }
+  };
+
+  // // Debug bookmarks
+  // useEffect(() => {
+  //   if (activeTab === "bookmarks") {
+  //     console.log("Bookmarks Debug:", {
+  //       totalBookmarks: profileData?.totalBookmarks,
+  //       fetchedCount: bookmarks.length,
+  //       bookmarks,
+  //     });
+  //   }
+  // }, [activeTab, bookmarks, profileData]);
 
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -162,77 +391,6 @@ export default function ProfilePanel({
   const [editRegion, setEditRegion] = useState(currentUser.region || "");
   const [editGender, setEditGender] = useState(currentUser.gender || "unknown");
   const [isUpdating, setIsUpdating] = useState(false);
-
-  // 入场动画
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setIsVisible(true);
-    });
-  }, []);
-
-  const fetchUserPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Fetch user's posts
-      const { data: postsData, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Calculate totals and fetch comments for each post
-      let likes = 0;
-      let comments = 0;
-      const postsWithComments: PostWithStats[] = [];
-
-      for (const post of postsData || []) {
-        likes += post.likes_count || 0;
-        comments += post.comments_count || 0;
-
-        // Fetch comments for this post
-        const { data: commentsData } = await supabase
-          .from("comments")
-          .select("*")
-          .eq("post_id", post.id)
-          .order("created_at", { ascending: false })
-          .limit(10);
-
-        // Get user info for comments
-        const commentsWithUser: CommentWithUser[] = [];
-        for (const comment of commentsData || []) {
-          const { data: userData } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", comment.user_id)
-            .single();
-
-          commentsWithUser.push({
-            ...comment,
-            user: userData,
-          });
-        }
-
-        postsWithComments.push({
-          ...post,
-          comments: commentsWithUser,
-        });
-      }
-
-      setPosts(postsWithComments);
-      setTotalLikes(likes);
-      setTotalComments(comments);
-    } catch (err) {
-      console.error("Error fetching posts:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser.id]);
-
-  useEffect(() => {
-    fetchUserPosts();
-  }, [fetchUserPosts]);
 
   const handleUpdateProfile = async () => {
     if (!editNickname.trim()) return;
@@ -271,7 +429,7 @@ export default function ProfilePanel({
 
     try {
       await supabase.from("posts").delete().eq("id", postId);
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      utils.user.getProfile.invalidate({ userId: currentUser.id });
     } catch (err) {
       console.error("Error deleting post:", err);
     }
@@ -289,7 +447,7 @@ export default function ProfilePanel({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
       style={{ pointerEvents: "auto" }}
     >
       {/* Backdrop */}
@@ -306,7 +464,7 @@ export default function ProfilePanel({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl max-h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/95 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
@@ -486,94 +644,484 @@ export default function ProfilePanel({
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex gap-6 mt-2">
-            <div className="text-center">
-              <div className="text-white text-2xl font-light">
+          {/* Stats as Tabs */}
+          <div className="flex flex-wrap gap-0 mt-4 pb-2 justify-between">
+            <button
+              onClick={() => setActiveTab("posts")}
+              className={`flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "posts"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-white text-lg font-light">
                 {posts.length}
               </div>
-              <div className="text-white/50 text-xs">{t.myPosts}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-red-400 text-2xl font-light">
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.myPosts}
+              </div>
+              {activeTab === "posts" && (
+                <div className="w-full h-0.5 bg-white mt-1 rounded-full" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("bookmarks")}
+              className={`flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "bookmarks"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-yellow-400 text-lg font-light">
+                {totalBookmarks}
+              </div>
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.myBookmarks}
+              </div>
+              {activeTab === "bookmarks" && (
+                <div className="w-full h-0.5 bg-yellow-400 mt-1 rounded-full" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("likes")}
+              className={`relative flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "likes"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-red-400 text-lg font-light">
                 {totalLikes}
               </div>
-              <div className="text-white/50 text-xs">{t.totalLikes}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-blue-400 text-2xl font-light">
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.totalLikes}
+              </div>
+              {activeTab === "likes" && (
+                <div className="w-full h-0.5 bg-red-400 mt-1 rounded-full" />
+              )}
+              {unreadLikes.size > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 rounded-full flex items-center justify-center px-1 border border-black">
+                  <span className="text-[9px] font-bold text-white leading-none">
+                    +{unreadLikes.size > 99 ? "99" : unreadLikes.size}
+                  </span>
+                </div>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("comments")}
+              className={`relative flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "comments"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-blue-400 text-lg font-light">
                 {totalComments}
               </div>
-              <div className="text-white/50 text-xs">{t.totalComments}</div>
-            </div>
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.totalComments}
+              </div>
+              {activeTab === "comments" && (
+                <div className="w-full h-0.5 bg-blue-400 mt-1 rounded-full" />
+              )}
+              {unreadComments.size > 0 && (
+                <div className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 rounded-full flex items-center justify-center px-1 border border-black">
+                  <span className="text-[9px] font-bold text-white leading-none">
+                    +{unreadComments.size > 99 ? "99" : unreadComments.size}
+                  </span>
+                </div>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("followers")}
+              className={`flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "followers"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-white text-lg font-light">
+                {followersCount}
+              </div>
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.followers}
+              </div>
+              {activeTab === "followers" && (
+                <div className="w-full h-0.5 bg-white mt-1 rounded-full" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("following")}
+              className={`flex flex-col items-center min-w-[50px] transition-opacity ${
+                activeTab === "following"
+                  ? "opacity-100"
+                  : "opacity-50 hover:opacity-80"
+              }`}
+            >
+              <div className="text-white text-lg font-light">
+                {followingCount}
+              </div>
+              <div className="text-white text-xs whitespace-nowrap">
+                {t.following}
+              </div>
+              {activeTab === "following" && (
+                <div className="w-full h-0.5 bg-white mt-1 rounded-full" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Posts List */}
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 text-white/40">{t.noPosts}</div>
-          ) : (
-            <div className="space-y-4">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white/5 rounded-xl p-4 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors relative z-20"
-                  style={{ pointerEvents: "auto" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("ProfilePanel: Post clicked", post.id);
-                    triggerHapticFeedback();
-                    onPostClick({ ...post, user: currentUser });
-                  }}
-                >
-                  {/* Post Content */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{
-                          backgroundColor: post.color || "#6366f1",
-                          boxShadow: `0 0 8px ${post.color || "#6366f1"}`,
-                        }}
-                      />
-                      <span className="text-white/40 text-xs">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
+        {/* Content List */}
+        <div
+          ref={listRef}
+          className="flex-1 overflow-y-auto px-4 pb-4 min-h-[300px]"
+        >
+          {activeTab === "posts" && (
+            <>
+              {/* Sorting Controls */}
+              <div className="sticky top-0 z-30 backdrop-blur-md py-2 -mx-4 px-4 mb-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
+                {(["latest", "likes", "comments", "bookmarks"] as const).map(
+                  (sort) => (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        triggerHapticFeedback();
-                        handleDeletePost(post.id);
-                      }}
-                      className="text-white/30 hover:text-red-400 transition-colors btn-icon"
+                      key={sort}
+                      onClick={() => setSortOrder(sort)}
+                      className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                        sortOrder === sort
+                          ? "bg-white text-black font-medium"
+                          : "bg-white/10 text-white/60 hover:bg-white/20"
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {sort === "latest" && t.latest}
+                      {sort === "likes" && t.mostLikes}
+                      {sort === "comments" && t.mostComments}
+                      {sort === "bookmarks" && t.mostBookmarks}
                     </button>
-                  </div>
+                  )
+                )}
+              </div>
 
-                  <p className="text-white/90 text-sm mb-3">{post.content}</p>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1 text-red-400/80">
-                      <Heart className="w-3.5 h-3.5" fill="currentColor" />
-                      {post.likes_count}
-                    </span>
-                    <span className="flex items-center gap-1 text-blue-400/80">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      {post.comments_count} {t.comments}
-                    </span>
-                  </div>
+              {loading || loadingPosts ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                 </div>
-              ))}
-            </div>
+              ) : posts.length === 0 ? (
+                <div className="text-center py-12 text-white/40">
+                  {t.noPosts}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PostItem
+                      key={post.id}
+                      post={post}
+                      currentUser={currentUser}
+                      onPostClick={(p) => {
+                        handleSaveScroll();
+                        onPostClick({ ...p, user: currentUser });
+                      }}
+                      onDelete={handleDeletePost}
+                      showDelete={true}
+                    />
+                  ))}
+
+                  {hasNextPage && (
+                    <button
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      className="w-full py-3 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-sm"
+                    >
+                      {isFetchingNextPage ? (
+                        <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mx-auto" />
+                      ) : (
+                        "Load More"
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
+
+          {activeTab === "bookmarks" &&
+            (loadingBookmarks ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+            ) : bookmarks.length === 0 ? (
+              <div className="text-center py-12 text-white/40">
+                {t.noBookmarks}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {bookmarks.map((post) => (
+                  <PostItem
+                    key={post.id}
+                    post={post}
+                    currentUser={currentUser}
+                    onPostClick={(p) => {
+                      handleSaveScroll();
+                      // @ts-ignore
+                      onPostClick({ ...p, user: post.user || currentUser });
+                    }}
+                    onDelete={handleDeletePost}
+                    showDelete={post.user_id === currentUser.id}
+                    onUserClick={(u) => {
+                      handleSaveScroll();
+                      onUserClick?.(u);
+                    }}
+                  />
+                ))}
+              </div>
+            ))}
+
+          {activeTab === "followers" &&
+            (loadingFollowers ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+            ) : followers.length === 0 ? (
+              <div className="text-center py-12 text-white/40">
+                {t.noFollowers}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {followers.map((user: any) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+                    onClick={() => {
+                      triggerHapticFeedback();
+                      handleSaveScroll();
+                      onUserClick?.(user);
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full overflow-hidden"
+                      style={{ backgroundColor: generateRandomAvatar(user.id) }}
+                    >
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.nickname}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <GeneratedAvatar seed={user.id} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-medium">
+                        {user.nickname}
+                      </div>
+                      {user.region && (
+                        <div className="text-white/40 text-xs">
+                          {user.region}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+          {activeTab === "following" &&
+            (loadingFollowing ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+            ) : following.length === 0 ? (
+              <div className="text-center py-12 text-white/40">
+                {t.noFollowing}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {following.map((user: any) => (
+                  <div
+                    key={user.id}
+                    className="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+                    onClick={() => {
+                      triggerHapticFeedback();
+                      handleSaveScroll();
+                      onUserClick?.(user);
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full overflow-hidden"
+                      style={{ backgroundColor: generateRandomAvatar(user.id) }}
+                    >
+                      {user.avatar_url ? (
+                        <img
+                          src={user.avatar_url}
+                          alt={user.nickname}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <GeneratedAvatar seed={user.id} />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-medium">
+                        {user.nickname}
+                      </div>
+                      {user.region && (
+                        <div className="text-white/40 text-xs">
+                          {user.region}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+          {activeTab === "likes" &&
+            (loadingLikes ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+            ) : receivedLikes.length === 0 ? (
+              <div className="text-center py-12 text-white/40">{t.noLikes}</div>
+            ) : (
+              <div className="space-y-4">
+                {receivedLikes.map((like: any) => (
+                  <div
+                    key={like.created_at}
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                      unreadLikes.has(`${like.post_id}-${like.user_id}`)
+                        ? "bg-white/10 border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                        : "bg-white/5"
+                    }`}
+                  >
+                    <div className="mt-1">
+                      <Heart className="w-4 h-4 text-red-400 fill-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white text-sm">
+                        <span
+                          className="font-bold cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (like.user) {
+                              triggerHapticFeedback();
+                              handleSaveScroll();
+                              onUserClick?.(like.user);
+                            }
+                          }}
+                        >
+                          {like.user?.nickname || "Someone"}
+                        </span>{" "}
+                        liked your post
+                      </div>
+                      <div className="text-white/40 text-xs mt-1">
+                        {new Date(like.created_at).toLocaleDateString()}
+                      </div>
+                      {like.post && (
+                        <div
+                          className="mt-2 p-2 bg-white/5 rounded text-xs text-white/60 line-clamp-2 cursor-pointer hover:bg-white/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerHapticFeedback();
+                            handleSaveScroll();
+                            // @ts-ignore
+                            onPostClick({ ...like.post, user: currentUser });
+                          }}
+                        >
+                          {like.post.content}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+
+          {activeTab === "comments" &&
+            (loadingComments ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              </div>
+            ) : receivedComments.length === 0 ? (
+              <div className="text-center py-12 text-white/40">
+                {t.noReceivedComments}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {receivedComments.map((comment: any) => (
+                  <div
+                    key={comment.id}
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                      unreadComments.has(comment.id)
+                        ? "bg-white/10 border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                        : "bg-white/5"
+                    }`}
+                  >
+                    <div className="mt-1">
+                      <MessageCircle className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white text-sm">
+                        <span
+                          className="font-bold cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (comment.user) {
+                              triggerHapticFeedback();
+                              handleSaveScroll();
+                              onUserClick?.(comment.user);
+                            }
+                          }}
+                        >
+                          {comment.user?.nickname || "Someone"}
+                        </span>{" "}
+                        commented
+                      </div>
+                      <div
+                        className="text-white/80 text-sm mt-1 cursor-pointer hover:bg-white/5 p-1 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (comment.post) {
+                            triggerHapticFeedback();
+                            handleSaveScroll();
+                            // @ts-ignore
+                            onPostClick({
+                              ...comment.post,
+                              user: currentUser,
+                              highlightCommentId: comment.id,
+                            });
+                          }
+                        }}
+                      >
+                        "{comment.content}"
+                      </div>
+                      <div className="text-white/40 text-xs mt-1">
+                        {new Date(comment.created_at).toLocaleDateString()}
+                      </div>
+                      {comment.post && (
+                        <div
+                          className="mt-2 p-2 bg-white/5 rounded text-xs text-white/60 line-clamp-2 cursor-pointer hover:bg-white/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            triggerHapticFeedback();
+                            handleSaveScroll();
+                            // @ts-ignore
+                            onPostClick({
+                              ...comment.post,
+                              user: currentUser,
+                              highlightCommentId: comment.id,
+                            });
+                          }}
+                        >
+                          Re: {comment.post.content}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
         </div>
 
         {/* Footer - Logout */}

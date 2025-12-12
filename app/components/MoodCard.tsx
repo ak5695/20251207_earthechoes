@@ -12,6 +12,7 @@ interface MoodCardProps {
   isClosable?: boolean;
   onClose?: () => void;
   onClick?: () => void;
+  onUserClick?: () => void;
   userName?: string;
   voiceLabel?: string;
   isLoading?: boolean;
@@ -22,6 +23,7 @@ export default function MoodCard({
   isClosable = false,
   onClose,
   onClick,
+  onUserClick,
   userName,
   voiceLabel = "来自星云的声音",
   isLoading = false,
@@ -51,15 +53,30 @@ export default function MoodCard({
               }}
             />
             {userName ? (
-              <TypingAnimation
-                duration={60}
-                delay={200}
-                showCursor={false}
-                startOnView={false}
-                className="text-xs  text-slate-500 font-medium"
+              <div
+                onClick={(e) => {
+                  if (onUserClick) {
+                    e.stopPropagation();
+                    triggerHapticFeedback();
+                    onUserClick();
+                  }
+                }}
+                className={
+                  onUserClick
+                    ? "cursor-pointer hover:text-slate-300 transition-colors"
+                    : ""
+                }
               >
-                {userName}
-              </TypingAnimation>
+                <TypingAnimation
+                  duration={60}
+                  delay={200}
+                  showCursor={false}
+                  startOnView={false}
+                  className="text-xs text-slate-500 font-medium"
+                >
+                  {userName}
+                </TypingAnimation>
+              </div>
             ) : (
               <TypingAnimation
                 duration={60}

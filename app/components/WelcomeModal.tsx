@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Globe, ChevronDown } from "lucide-react";
 import { TypingAnimationLite } from "@/components/ui/typing-animation-lite";
 import {
@@ -26,6 +26,10 @@ export default function WelcomeModal({
   const [showLangMenu, setShowLangMenu] = useState(false);
   const t = translations[language];
 
+  useEffect(() => {
+    console.log("WelcomeModal: language changed to", language);
+  }, [language]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
       {/* 背景遮罩 */}
@@ -36,10 +40,10 @@ export default function WelcomeModal({
       />
 
       {/* 欢迎卡片 - 外层浮动，内层进出动画 */}
-      <div className="animate-space-float-slow w-full max-w-[420px]">
+      <div className="w-full max-w-[420px]">
         <div
           className={`relative bg-black/70 border border-white/20 rounded-2xl p-6 sm:p-8 w-full shadow-2xl ${
-            isClosing ? "animate-card-exit" : "animate-card-enter"
+            isClosing ? "animate-card-exit" : "animate-card-enter-float"
           }`}
         >
           {/* 语言选择器 */}
@@ -124,8 +128,7 @@ export default function WelcomeModal({
                 <TypingAnimationLite
                   duration={50}
                   delay={1200}
-                  showCursor={true}
-                  blinkCursor={true}
+                  showCursor={false}
                   className="text-white/50 text-sm leading-relaxed"
                 >
                   {t.welcomeText2}

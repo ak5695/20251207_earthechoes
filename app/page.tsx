@@ -96,6 +96,9 @@ export default function Home() {
   const [commentPanelPost, setCommentPanelPost] = useState<
     (Post & { user: User | null }) | null
   >(null);
+  const [highlightCommentId, setHighlightCommentId] = useState<string | null>(
+    null
+  );
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
   const [isProfileClosing, setIsProfileClosing] = useState(false);
@@ -396,7 +399,7 @@ export default function Home() {
 
       const { data, error } = await supabase
         .from("posts")
-        .select("*")
+        .select("*, bookmarks(count)")
         .eq("content", currentParticleText)
         .maybeSingle();
 
@@ -847,13 +850,13 @@ export default function Home() {
           {/* 统一的心情卡片 */}
           {(selectedParticle || (carouselParticle && isCarouselVisible)) &&
             !showCommentPanel && (
-              <div className="mt-6 w-80 md:w-96 mx-auto animate-space-float-slow">
+              <div className="mt-6 w-80 md:w-96 mx-auto">
                 <div
                   ref={cardRef}
                   className={`pointer-events-auto ${
                     isCardClosing || isCarouselFading
                       ? "animate-card-exit"
-                      : "animate-card-enter"
+                      : "animate-card-enter-float"
                   }`}
                   onMouseEnter={() => {
                     if (!selectedParticle && carouselParticle) {
@@ -882,6 +885,12 @@ export default function Home() {
                     onClick={() => {
                       const particle = selectedParticle || carouselParticle;
                       if (particle) handleOpenComments(particle);
+                    }}
+                    onUserClick={() => {
+                      if (currentPost?.user) {
+                        setViewingUser(currentPost.user);
+                        setShowUserProfilePanel(true);
+                      }
                     }}
                     userName={currentPost?.user?.nickname}
                     voiceLabel={t.voiceFromNebula}
@@ -958,9 +967,11 @@ export default function Home() {
         <CommentPanel
           post={commentPanelPost}
           currentUser={currentUser}
+          highlightCommentId={highlightCommentId}
           onClose={() => {
             setShowCommentPanel(false);
             setCommentPanelPost(null);
+            setHighlightCommentId(null);
             setIsCardClosing(false); // 确保卡片重新显示时不是关闭状态
             setIsCarouselFading(false); // 确保卡片重新显示时不是淡出状态
             setCarouselPausedUntil(Date.now() + 2000); // 给一点缓冲时间
@@ -1033,10 +1044,15 @@ export default function Home() {
             console.log("Page: onPostClick received", post.id);
             // 记录来源
             setPreviousPanel("profile");
-            // 关闭 Profile 面板
-            setShowProfilePanel(false);
             // 打开评论面板
             setCommentPanelPost(post);
+            // @ts-ignore
+            if (post.highlightCommentId) {
+              // @ts-ignore
+              setHighlightCommentId(post.highlightCommentId);
+            } else {
+              setHighlightCommentId(null);
+            }
             setShowCommentPanel(true);
           }}
           onLogout={() => {
@@ -1049,6 +1065,10 @@ export default function Home() {
           }}
           onUpdateUser={(updatedUser) => {
             setCurrentUser(updatedUser);
+          }}
+          onUserClick={(user) => {
+            setViewingUser(user);
+            setShowUserProfilePanel(true);
           }}
           language={language}
           isClosing={isProfileClosing}
@@ -1075,6 +1095,7 @@ export default function Home() {
       {showUserProfilePanel && viewingUser && (
         <UserProfilePanel
           user={viewingUser}
+          currentUser={currentUser}
           onClose={() => {
             setIsUserProfileClosing(true);
             setTimeout(() => {
@@ -1087,8 +1108,6 @@ export default function Home() {
           onPostClick={(post) => {
             // 记录来源
             setPreviousPanel("user-profile");
-            // 关闭 User Profile 面板
-            setShowUserProfilePanel(false);
             // 打开评论面板
             setCommentPanelPost({ ...post, user: viewingUser });
             setShowCommentPanel(true);

@@ -104,7 +104,35 @@ CREATE TABLE notifications (
 
 -- Create indexes
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
-CREATE INDEX idx_notifications_is_read ON notifications(is_read);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
+
+-- =============================================
+-- 6. Bookmarks Table (收藏表)
+-- =============================================
+CREATE TABLE IF NOT EXISTS bookmarks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  -- Ensure user can only bookmark once per post
+  CONSTRAINT unique_post_bookmark UNIQUE (user_id, post_id)
+);
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_post_id ON bookmarks(post_id);
+
+-- Enable RLS for bookmarks
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+
+-- Policies for bookmarks
+DROP POLICY IF EXISTS "Users can view their own bookmarks" ON bookmarks;
+DROP POLICY IF EXISTS "Users can create their own bookmarks" ON bookmarks;
+DROP POLICY IF EXISTS "Users can delete their own bookmarks" ON bookmarks;
+
+CREATE POLICY "Users can view their own bookmarks" ON bookmarks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own bookmarks" ON bookmarks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own bookmarks" ON bookmarks FOR DELETE USING (auth.uid() = user_id);
 CREATE INDEX idx_notifications_created_at ON notifications(created_at DESC);
 
 -- =============================================

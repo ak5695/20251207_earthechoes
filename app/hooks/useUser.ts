@@ -54,6 +54,15 @@ export function useUser(): UseUserReturn {
     };
     fetchUnreadCount();
 
+    // Request notification permission
+    if (
+      currentUser &&
+      "Notification" in window &&
+      Notification.permission === "default"
+    ) {
+      Notification.requestPermission();
+    }
+
     // 实时订阅
     const channel = supabase
       .channel("notifications")
@@ -65,8 +74,43 @@ export function useUser(): UseUserReturn {
           table: "notifications",
           filter: `user_id=eq.${currentUser.id}`,
         },
-        () => {
+        (payload) => {
           setUnreadNotifications((prev) => prev + 1);
+
+          // Send browser notification
+          if (
+            "Notification" in window &&
+            Notification.permission === "granted"
+          ) {
+            const newNotif = payload.new as any;
+            let title = "Earth Echoes";
+            let body = "You have a new notification";
+
+            if (newNotif.type === "like") {
+              body = "Someone liked your post ❤️";
+            } else if (newNotif.type === "comment") {
+              body = "Someone commented on your post 💬";
+            } else if (newNotif.type === "reply") {
+              body = "Someone replied to your comment ↩️";
+            }
+
+            new Notification(title, {
+              body,
+              icon: "/logo.webp",
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${currentUser.id}`,
+        },
+        () => {
+          fetchUnreadCount();
         }
       )
       .subscribe();

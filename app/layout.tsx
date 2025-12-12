@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+// import { Inter } from "next/font/google";
 
 import "./globals.css";
-import QueryProvider from "./providers/QueryProvider";
+import TrpcProvider from "./_trpc/provider";
 import ProgressBarProvider from "./providers/ProgressBarProvider";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-  preload: true,
-  fallback: ["system-ui", "arial"],
-});
+// const inter = Inter({
+//   subsets: ["latin"],
+//   variable: "--font-inter",
+//   display: "swap",
+//   preload: true,
+//   fallback: ["system-ui", "arial"],
+// });
 
 export const metadata: Metadata = {
   title: "Echoes of the Stars - 星际回响",
@@ -30,10 +30,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`antialiased font-sans ${inter.variable}`}>
-        <QueryProvider>
+      <body className={`antialiased font-sans`}>
+        <TrpcProvider>
           <ProgressBarProvider>{children}</ProgressBarProvider>
-        </QueryProvider>
+        </TrpcProvider>
       </body>
     </html>
   );
