@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Globe, ChevronDown } from "lucide-react";
 import { TypingAnimationLite } from "@/components/ui/typing-animation-lite";
 import {
