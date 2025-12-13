@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { X, Search, User as UserIcon, FileText, Loader2 } from "lucide-react";
 import { trpc } from "@/app/_trpc/client";
 import { User, Post } from "@/lib/supabase";
@@ -53,7 +53,15 @@ export default function ExplorePanel({
     }
   );
 
-  const posts = data?.pages.flatMap((page) => page.items) || [];
+  const posts = useMemo(() => {
+    const allPosts = data?.pages.flatMap((page) => page.items) || [];
+    const seen = new Set();
+    return allPosts.filter((post) => {
+      if (seen.has(post.id)) return false;
+      seen.add(post.id);
+      return true;
+    });
+  }, [data]);
 
   // Infinite scroll observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -82,8 +90,8 @@ export default function ExplorePanel({
       }`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
-        <h2 className="text-xl font-bold text-white tracking-wider flex items-center gap-2">
+      <div className="flex items-center justify-between p-3 border-b border-white/10">
+        <h2 className="text-base md:text-xl font-bold text-white tracking-wider flex items-center gap-2">
           <Search className="w-5 h-5 text-indigo-400" />
           探索
         </h2>

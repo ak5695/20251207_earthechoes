@@ -66,29 +66,6 @@ export default function Header({
 
       {/* 右侧 - 通知和用户 */}
       <div className="flex items-start gap-3">
-        {/* 信息按钮 */}
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onOpenInfo();
-            }}
-            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
-          >
-            <CircleAlert className="w-5 h-5" />
-          </button>
-          {/* 探索按钮 */}
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onOpenExplore();
-            }}
-            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
-          >
-            <Compass className="w-5 h-5" />
-          </button>
-        </div>
-
         {/* 通知按钮 */}
         {currentUser && (
           <button
@@ -107,7 +84,7 @@ export default function Header({
           </button>
         )}
 
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-2">
           {/* 用户头像/登录按钮 */}
           <button
             onClick={() => {
@@ -150,17 +127,10 @@ export default function Header({
               </svg>
             )}
           </button>
+        <div className="flex flex-col items-center gap-2">
 
-          {/* 信息/规则按钮 */}
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onOpenInfo();
-            }}
-            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
-          >
-            <CircleAlert className="w-5 h-5" />
-          </button>
+        </div>
+         
         </div>
       </div>
     </div>
