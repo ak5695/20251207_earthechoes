@@ -10,7 +10,10 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "build:mobile": "cross-env CAPACITOR_BUILD=true NEXT_PUBLIC_API_URL=https://20251207-earthechoes.vercel.app/api/trpc next build",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
     "@dicebear/bottts-neutral": "^9.2.4",

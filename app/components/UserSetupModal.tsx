@@ -252,7 +252,8 @@ export default function UserSetupModal({
   onOpenPolicy,
   language,
 }: UserSetupModalProps) {
-  const t = translations[language] || translations.en;
+  const [userLanguage, setUserLanguage] = useState(language);
+  const t = translations[userLanguage] || translations.en;
   const [activeTab, setActiveTab] = useState<"register" | "login">("register");
   const [nickname, setNickname] = useState("");
   const [gender, setGender] = useState("unknown");
@@ -260,7 +261,6 @@ export default function UserSetupModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [userLanguage, setUserLanguage] = useState(language);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

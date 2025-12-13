@@ -14,6 +14,7 @@ const withPWAConfig = withPWA({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: process.env.CAPACITOR_BUILD ? "export" : undefined,
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
@@ -22,6 +23,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    unoptimized: process.env.CAPACITOR_BUILD === "true",
   },
 };
 
