@@ -10,6 +10,16 @@
 				"\n@keyframes draw-line {\n  from {\n    stroke-dashoffset: 1000;\n  }\n  to {\n    stroke-dashoffset: 0;\n  }\n}\n\n.animate-draw-line {\n  stroke-dasharray: 1000;\n  stroke-dashoffset: 1000;\n  animation: draw-line 1s ease-out forwards;\n}\n"
 			],
 			"group": "edit"
+		},
+		{
+			"label": "append_css_slide_out",
+			"type": "shell",
+			"command": "cat >> app/globals.css",
+			"args": [
+				"app/globals.css",
+				"\n@keyframes slide-out-to-right {\n  0% {\n    transform: translateX(0);\n    opacity: 1;\n  }\n  100% {\n    transform: translateX(100%);\n    opacity: 0;\n  }\n}\n\n.animate-slide-out-right {\n  animation: slide-out-to-right 0.5s ease-in-out forwards;\n}\n"
+			],
+			"group": "edit"
 		}
 	]
 }

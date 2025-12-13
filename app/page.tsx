@@ -1104,7 +1104,7 @@ export default function Home() {
             setTimeout(() => {
               setShowExplorePanel(false);
               setIsExploreClosing(false);
-            }, 300);
+            }, 500);
           }}
           onPostClick={(post) => {
             setCommentPanelPost(post);
@@ -1114,6 +1114,7 @@ export default function Home() {
             setViewingUser(user);
             setShowUserProfilePanel(true);
           }}
+          onUserRequired={() => setShowUserSetup(true)}
           language={language}
           isClosing={isExploreClosing}
         />
@@ -1140,6 +1141,7 @@ export default function Home() {
             setCommentPanelPost({ ...post, user: viewingUser });
             setShowCommentPanel(true);
           }}
+          onUserRequired={() => setShowUserSetup(true)}
           language={language}
           isClosing={isUserProfileClosing}
         />

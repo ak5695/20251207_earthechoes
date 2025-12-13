@@ -127,29 +127,28 @@ export default function Header({
               </svg>
             )}
           </button>
-        <div className="flex flex-col items-center gap-1.5">
- {/* 信息/规则按钮 */}
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onOpenInfo();
-            }}
-            className="size-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
-          >
-            <CircleAlert className="size-7" />
-          </button>
-          {/* 探索按钮 */}
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              onOpenExplore();
-            }}
-            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
-          >
-            <Compass className="size-7" />
-          </button>
-        </div>
-         
+          <div className="flex flex-col items-center gap-1.5">
+            {/* 信息/规则按钮 */}
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                onOpenInfo();
+              }}
+              className="size-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+            >
+              <CircleAlert className="size-5 md:size-7" />
+            </button>
+            {/* 探索按钮 */}
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                onOpenExplore();
+              }}
+              className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+            >
+              <Compass className="size-5 md:size-7" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

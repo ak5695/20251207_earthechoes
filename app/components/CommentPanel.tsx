@@ -68,7 +68,7 @@ const translations: Record<string, Record<string, string>> = {
     vip: "VIP",
     loginToComment: "登录后评论",
     follow: "关心",
-    following: "已关心",
+    following: "关心",
     delete: "删除",
     deleteConfirm: "确定删除这条评论吗？",
     contentDeleted: "内容已删除",

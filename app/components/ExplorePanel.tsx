@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { X, Search, User as UserIcon, FileText, Loader2 } from "lucide-react";
+import { X, Search, User as UserIcon, FileText, Loader2, RefreshCw } from "lucide-react";
 import { trpc } from "@/app/_trpc/client";
 import { User, Post } from "@/lib/supabase";
 import { PostItem } from "./PostItem";
 import { triggerHapticFeedback } from "../utils/haptics";
+import ShareModal from "./ShareModal";
 
 interface ExplorePanelProps {
   currentUser: User | null;
   onClose: () => void;
   onPostClick: (post: Post & { user: User | null }) => void;
   onUserClick: (user: User) => void;
+  onUserRequired?: () => void;
   language: "zh" | "en" | "ja";
   isClosing?: boolean;
 }
@@ -19,12 +21,14 @@ export default function ExplorePanel({
   onClose,
   onPostClick,
   onUserClick,
+  onUserRequired,
   language,
   isClosing = false,
 }: ExplorePanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<"content" | "user">("content");
+  const [sharePost, setSharePost] = useState<Post | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -38,6 +42,7 @@ export default function ExplorePanel({
   const {
     data,
     isPending,
+    isFetching,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -95,15 +100,29 @@ export default function ExplorePanel({
           <Search className="w-5 h-5 text-indigo-400" />
           探索
         </h2>
-        <button
-          onClick={() => {
-            triggerHapticFeedback();
-            onClose();
-          }}
-          className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              refetch();
+            }}
+            className={`p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white ${
+              isFetching && !isFetchingNextPage ? "animate-spin" : ""
+            }`}
+            title="刷新"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              onClose();
+            }}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter - Compact Design */}
@@ -129,7 +148,7 @@ export default function ExplorePanel({
               }}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                 searchType === "content"
-                  ? "bg-indigo-500 text-white shadow-sm"
+                  ? "bg-orange-800 text-white shadow-sm"
                   : "text-white/40 hover:text-white/60 hover:bg-white/5"
               }`}
             >
@@ -143,7 +162,7 @@ export default function ExplorePanel({
               }}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
                 searchType === "user"
-                  ? "bg-indigo-500 text-white shadow-sm"
+                  ? "bg-orange-800 text-white shadow-sm"
                   : "text-white/40 hover:text-white/60 hover:bg-white/5"
               }`}
             >
@@ -169,6 +188,8 @@ export default function ExplorePanel({
                 currentUser={currentUser}
                 onPostClick={() => onPostClick(post)}
                 onUserClick={() => onUserClick(post.user)}
+                onUserRequired={onUserRequired}
+                onShare={(p) => setSharePost(p)}
                 showActions={false} // Explore view usually just shows content, actions can be inside or simplified
               />
             ))}
@@ -187,6 +208,16 @@ export default function ExplorePanel({
           </div>
         )}
       </div>
+
+      {/* Share Modal */}
+      {sharePost && (
+        <ShareModal
+          isOpen={true}
+          post={sharePost}
+          onClose={() => setSharePost(null)}
+          language={language}
+        />
+      )}
     </div>
   );
 }

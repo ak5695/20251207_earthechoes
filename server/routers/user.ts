@@ -155,12 +155,23 @@ export const userRouter = router({
 
         if (statsError) throw new Error(statsError.message);
 
-        let totalLikes = 0;
+        // Calculate total likes received (excluding self-likes)
+        // We query the likes table directly to filter out self-likes
+        const { count: totalLikes, error: likesError } = await supabaseAdmin
+          .from("likes")
+          .select("posts!inner(user_id)", { count: "exact", head: true })
+          .eq("posts.user_id", userId)
+          .neq("user_id", userId);
+
+        if (likesError) {
+          console.error("Error counting likes:", likesError);
+        }
+
         let totalComments = 0;
         const totalPosts = allPostsStats?.length || 0;
 
         allPostsStats?.forEach((post) => {
-          totalLikes += post.likes_count || 0;
+          // totalLikes is now calculated separately
           totalComments += post.comments_count || 0;
         });
 
@@ -179,7 +190,7 @@ export const userRouter = router({
         }
 
         return {
-          totalLikes,
+          totalLikes: totalLikes || 0,
           totalComments,
           totalBookmarks: totalBookmarks || 0,
           totalPosts,

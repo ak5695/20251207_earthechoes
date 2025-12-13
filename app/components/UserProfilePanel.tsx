@@ -8,12 +8,14 @@ import { TypingAnimation } from "@/components/ui/typing-animation";
 import { triggerHapticFeedback } from "../utils/haptics";
 import { trpc } from "../_trpc/client";
 import { PostItem } from "./PostItem";
+import ShareModal from "./ShareModal";
 
 interface UserProfilePanelProps {
   user: User;
   currentUser: User | null;
   onClose: () => void;
   onPostClick: (post: Post) => void;
+  onUserRequired?: () => void;
   language: string;
   isClosing?: boolean;
 }
@@ -34,14 +36,14 @@ const translations: Record<string, Record<string, string>> = {
     joinedAt: "加入于",
     vip: "V",
     follow: "关心",
-    following: "已关心",
-    followers: "粉丝",
+    following: "关心中",
+    followers: "朋友",
     unfollow: "取消关心",
     sortBy: "排序",
-    latest: "最新",
-    mostLikes: "点赞最多",
-    mostComments: "评论最多",
-    mostBookmarks: "收藏最多",
+    latest: "按时间",
+    mostLikes: "按称赞",
+    mostBookmarks: "按收藏",
+    mostComments: "按评论",
   },
   en: {
     profile: "User Profile",
@@ -154,18 +156,15 @@ export default function UserProfilePanel({
   currentUser,
   onClose,
   onPostClick,
+  onUserRequired,
   language,
   isClosing = false,
 }: UserProfilePanelProps) {
   const t = translations[language] || translations.en;
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [sharePost, setSharePost] = useState<Post | null>(null);
 
   const utils = trpc.useUtils();
-
-  // Sorting state
-  const [sortOrder, setSortOrder] = useState<
-    "latest" | "likes" | "comments" | "bookmarks"
-  >("latest");
 
   // Fetch profile data (posts + stats)
   const { data: profileData, isPending: loading } =
@@ -173,7 +172,7 @@ export default function UserProfilePanel({
       userId: user.id,
     });
 
-  // Fetch posts with sorting
+  // Fetch posts (always sorted by latest)
   const {
     data: postsData,
     isPending: loadingPosts,
@@ -183,7 +182,7 @@ export default function UserProfilePanel({
   } = trpc.user.getUserPosts.useInfiniteQuery(
     {
       userId: user.id,
-      sortBy: sortOrder,
+      sortBy: "latest",
       limit: 10,
     },
     {
@@ -256,7 +255,7 @@ export default function UserProfilePanel({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center p-2"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-2"
       style={{ pointerEvents: "auto" }}
     >
       {/* Backdrop */}
@@ -326,10 +325,10 @@ export default function UserProfilePanel({
                   <button
                     onClick={handleFollow}
                     disabled={isFollowLoading}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1 shrink-0 ${
+                    className={`px-4 py-1 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1 shrink-0 ${
                       isFollowing
                         ? "bg-white/10 text-white/60 hover:bg-white/20"
-                        : "bg-white text-black hover:bg-white/90"
+                        : "bg-orange-700 text-black hover:bg-white/90"
                     }`}
                   >
                     {isFollowLoading ? (
@@ -373,27 +372,27 @@ export default function UserProfilePanel({
           </div>
 
           {/* Stats */}
-          <div className="flex justify-between mt-2 px-2">
+          <div className="flex justify-between mx-4 my-2 px-2">
             <div className="text-center">
-              <div className="text-white text-xl font-light">
+              <div className="text-white text-base md:text-xl font-light">
                 {posts.length}
               </div>
               <div className="text-white/50 text-xs">{t.posts}</div>
             </div>
             <div className="text-center">
-              <div className="text-white text-xl font-light">
+              <div className="text-white  text-base md:text-xl font-light">
                 {followersCount}
               </div>
               <div className="text-white/50 text-xs">{t.followers}</div>
             </div>
             <div className="text-center">
-              <div className="text-white text-xl font-light">
+              <div className="text-white  text-base md:text-xl font-light">
                 {followingCount}
               </div>
               <div className="text-white/50 text-xs">{t.following}</div>
             </div>
             <div className="text-center">
-              <div className="text-red-400 text-xl font-light">
+              <div className="text-red-400 text-base md:text-xl font-light">
                 {totalLikes}
               </div>
               <div className="text-white/50 text-xs">{t.totalLikes}</div>
@@ -402,29 +401,7 @@ export default function UserProfilePanel({
         </div>
 
         {/* Posts List */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          {/* Sorting Controls */}
-          <div className="sticky top-0 z-30 backdrop-blur-md py-2 -mx-4 px-4 mb-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
-            {(["latest", "likes", "comments", "bookmarks"] as const).map(
-              (sort) => (
-                <button
-                  key={sort}
-                  onClick={() => setSortOrder(sort)}
-                  className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
-                    sortOrder === sort
-                      ? "bg-white text-black font-medium"
-                      : "bg-white/10 text-white/60 hover:bg-white/20"
-                  }`}
-                >
-                  {sort === "latest" && t.latest}
-                  {sort === "likes" && t.mostLikes}
-                  {sort === "comments" && t.mostComments}
-                  {sort === "bookmarks" && t.mostBookmarks}
-                </button>
-              )
-            )}
-          </div>
-
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
           {loading || loadingPosts ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
@@ -439,6 +416,8 @@ export default function UserProfilePanel({
                   post={post}
                   currentUser={currentUser}
                   onPostClick={onPostClick}
+                  onUserRequired={onUserRequired}
+                  onShare={(p) => setSharePost(p)}
                 />
               ))}
 
@@ -459,6 +438,16 @@ export default function UserProfilePanel({
           )}
         </div>
       </div>
+
+      {/* Share Modal */}
+      {sharePost && (
+        <ShareModal
+          isOpen={true}
+          post={sharePost}
+          onClose={() => setSharePost(null)}
+          language={language}
+        />
+      )}
     </div>
   );
 }

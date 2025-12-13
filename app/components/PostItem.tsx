@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Post, User } from "@/lib/supabase";
-import { Heart, MessageCircle, Trash2, Bookmark, Edit2 } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Trash2,
+  Bookmark,
+  Edit2,
+  Share2,
+} from "lucide-react";
 import { trpc } from "../_trpc/client";
 import { triggerHapticFeedback } from "../utils/haptics";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -16,6 +23,8 @@ interface PostItemProps {
   onUserClick?: (user: User) => void;
   onEdit?: (post: Post) => void;
   showEdit?: boolean;
+  onUserRequired?: () => void;
+  onShare?: (post: Post) => void;
 }
 
 export function PostItem({
@@ -27,6 +36,8 @@ export function PostItem({
   onUserClick,
   onEdit,
   showEdit = false,
+  onUserRequired,
+  onShare,
 }: PostItemProps) {
   const utils = trpc.useUtils();
   const { data: likeStatus } = trpc.post.getLikeStatus.useQuery(
@@ -142,14 +153,20 @@ export function PostItem({
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUser) return;
+    if (!currentUser) {
+      onUserRequired?.();
+      return;
+    }
     triggerHapticFeedback();
     toggleLikeMutation.mutate({ postId: post.id, userId: currentUser.id });
   };
 
   const handleBookmark = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUser) return;
+    if (!currentUser) {
+      onUserRequired?.();
+      return;
+    }
     triggerHapticFeedback();
     toggleBookmarkMutation.mutate({ postId: post.id, userId: currentUser.id });
   };
@@ -265,6 +282,19 @@ export function PostItem({
           <MessageCircle className="w-3.5 h-3.5" />
           {post.comments_count || 0}
         </button>
+        {onShare && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              triggerHapticFeedback();
+              onShare(post);
+            }}
+            className="flex items-center gap-1 text-white/60 hover:text-white transition-colors btn-interactive bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="text-xs">Share</span>
+          </button>
+        )}
       </div>
     </div>
   );
