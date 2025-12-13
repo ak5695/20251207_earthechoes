@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { supabase, User, Post, Comment } from "@/lib/supabase";
 import { GeneratedAvatar } from "@/components/generated-avatar";
-import { X, Mars, Venus, CircleHelp } from "lucide-react";
+import { X, Mars, Venus, CircleHelp, Search } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { triggerHapticFeedback } from "../utils/haptics";
 import { trpc } from "../_trpc/client";
@@ -163,8 +163,21 @@ export default function UserProfilePanel({
   const t = translations[language] || translations.en;
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [sharePost, setSharePost] = useState<Post | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<
+    "latest" | "likes" | "comments" | "bookmarks"
+  >("latest");
 
   const utils = trpc.useUtils();
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch profile data (posts + stats)
   const { data: profileData, isPending: loading } =
@@ -182,7 +195,8 @@ export default function UserProfilePanel({
   } = trpc.user.getUserPosts.useInfiniteQuery(
     {
       userId: user.id,
-      sortBy: "latest",
+      sortBy: sortOrder,
+      search: debouncedSearchQuery,
       limit: 10,
     },
     {
@@ -401,7 +415,51 @@ export default function UserProfilePanel({
         </div>
 
         {/* Posts List */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-0">
+          {/* Search Input */}
+          <div className="sticky top-0 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索思考..."
+                className="w-full bg-white/10 border border-white/10 rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:bg-white/20 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Sorting Controls */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar mt-3 pb-1">
+              {(["latest", "likes", "bookmarks", "comments"] as const).map(
+                (sort) => (
+                  <button
+                    key={sort}
+                    onClick={() => setSortOrder(sort)}
+                    className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                      sortOrder === sort
+                        ? "bg-white text-black font-medium"
+                        : "bg-white/10 text-white/60 hover:bg-white/20"
+                    }`}
+                  >
+                    {sort === "latest" && t.latest}
+                    {sort === "likes" && t.mostLikes}
+                    {sort === "bookmarks" && t.mostBookmarks}
+                    {sort === "comments" && t.mostComments}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
           {loading || loadingPosts ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />

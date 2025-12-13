@@ -21,6 +21,7 @@ import { GeneratedAvatar } from "@/components/generated-avatar";
 import { triggerHapticFeedback } from "../utils/haptics";
 import { trpc } from "../_trpc/client";
 import { PostItem } from "./PostItem";
+import ShareModal from "./ShareModal";
 
 interface ProfilePanelProps {
   currentUser: User;
@@ -237,6 +238,7 @@ export default function ProfilePanel({
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [sharePost, setSharePost] = useState<Post | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -899,6 +901,7 @@ export default function ProfilePanel({
                       showDelete={true}
                       onEdit={handleEditPost}
                       showEdit={true}
+                      onShare={(p) => setSharePost(p)}
                     />
                   ))}
 
@@ -947,6 +950,7 @@ export default function ProfilePanel({
                       handleSaveScroll();
                       onUserClick?.(u);
                     }}
+                    onShare={(p) => setSharePost(p)}
                   />
                 ))}
               </div>
@@ -1227,6 +1231,16 @@ export default function ProfilePanel({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {sharePost && (
+        <ShareModal
+          isOpen={true}
+          post={sharePost}
+          onClose={() => setSharePost(null)}
+          language={language}
+        />
       )}
     </div>
   );

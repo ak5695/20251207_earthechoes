@@ -39,16 +39,13 @@ export default function ShareCard({ post, language }: ShareCardProps) {
       "#F0932B",
     ];
 
-    // Create a massive crown shape for Banyan tree
-    // Banyan trees have wide, spreading canopies
-    for (let i = 0; i < 150; i++) {
-      // Use a wider distribution
-      const r = 90 * Math.sqrt(Math.random()); // Radius increased to cover more width
+    // Create a compact crown shape for Small tree
+    for (let i = 0; i < 120; i++) {
+      const r = 60 * Math.sqrt(Math.random());
       const theta = Math.random() * 2 * Math.PI;
 
-      // Flatten the circle to make it wide
-      const x = 100 + r * Math.cos(theta) * 1.4; // Wider
-      const y = 80 + r * Math.sin(theta) * 0.8; // Higher up
+      const x = 100 + r * Math.cos(theta);
+      const y = 90 + r * Math.sin(theta) * 0.8;
 
       // Only keep leaves that are somewhat within bounds or slightly out
       if (y < 160) {
@@ -112,20 +109,20 @@ export default function ShareCard({ post, language }: ShareCardProps) {
             </linearGradient>
           </defs>
 
-          {/* Single Trunk - Thick at bottom, thin at top */}
+          {/* Small Tree Trunk */}
           <path
-            d="M85,200 Q95,160 98,130 L102,130 Q105,160 115,200 Z"
+            d="M95,200 Q98,170 99,140 L101,140 Q102,170 105,200 Z"
             fill="url(#trunkGradient)"
             opacity="0.9"
           />
 
-          {/* Main Branches - Spreading wide */}
+          {/* Small Branches */}
           <g stroke="#5d4037" fill="none" opacity="0.8" strokeLinecap="round">
-            <path d="M100,130 Q60,110 30,80" strokeWidth="3" />
-            <path d="M100,130 Q140,110 170,80" strokeWidth="3" />
-            <path d="M100,130 Q90,90 80,60" strokeWidth="2.5" />
-            <path d="M100,130 Q110,90 120,60" strokeWidth="2.5" />
-            <path d="M100,130 Q100,90 100,50" strokeWidth="2" />
+            <path d="M100,140 Q80,120 70,100" strokeWidth="2" />
+            <path d="M100,140 Q120,120 130,100" strokeWidth="2" />
+            <path d="M100,140 Q90,110 90,80" strokeWidth="1.5" />
+            <path d="M100,140 Q110,110 110,80" strokeWidth="1.5" />
+            <path d="M100,140 Q100,110 100,70" strokeWidth="1.5" />
           </g>
 
           {/* Leaves */}
