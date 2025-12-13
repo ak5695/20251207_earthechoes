@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { X, Search, User as UserIcon, FileText, Loader2, RefreshCw } from "lucide-react";
+import {
+  X,
+  Search,
+  User as UserIcon,
+  FileText,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { trpc } from "@/app/_trpc/client";
 import { User, Post } from "@/lib/supabase";
 import { PostItem } from "./PostItem";
