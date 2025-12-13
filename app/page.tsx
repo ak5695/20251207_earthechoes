@@ -32,6 +32,7 @@ import WelcomeModal from "./components/WelcomeModal";
 import InputArea from "./components/InputArea";
 import LoadingScreen from "./components/LoadingScreen";
 import InfoPanel, { View } from "./components/InfoPanel";
+import ExplorePanel from "./components/ExplorePanel";
 
 import type {
   ThreeSceneHandle,
@@ -106,6 +107,8 @@ export default function Home() {
   const [infoPanelInitialView, setInfoPanelInitialView] =
     useState<View>("main");
   const [isInfoClosing, setIsInfoClosing] = useState(false);
+  const [showExplorePanel, setShowExplorePanel] = useState(false);
+  const [isExploreClosing, setIsExploreClosing] = useState(false);
 
   // === 导航状态 ===
   const [previousPanel, setPreviousPanel] = useState<
@@ -836,6 +839,7 @@ export default function Home() {
           onOpenProfile={() => setShowProfilePanel(true)}
           onOpenUserSetup={() => setShowUserSetup(true)}
           onOpenInfo={() => setShowInfoPanel(true)}
+          onOpenExplore={() => setShowExplorePanel(true)}
         />
 
         {/* Center Timer */}
@@ -1088,6 +1092,30 @@ export default function Home() {
               setInfoPanelInitialView("main"); // Reset to main on close
             }, 300);
           }}
+        />
+      )}
+
+      {/* Explore Panel */}
+      {showExplorePanel && (
+        <ExplorePanel
+          currentUser={currentUser}
+          onClose={() => {
+            setIsExploreClosing(true);
+            setTimeout(() => {
+              setShowExplorePanel(false);
+              setIsExploreClosing(false);
+            }, 300);
+          }}
+          onPostClick={(post) => {
+            setCommentPanelPost(post);
+            setShowCommentPanel(true);
+          }}
+          onUserClick={(user) => {
+            setViewingUser(user);
+            setShowUserProfilePanel(true);
+          }}
+          language={language}
+          isClosing={isExploreClosing}
         />
       )}
 

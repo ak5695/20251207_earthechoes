@@ -18,7 +18,7 @@ interface PostItemProps {
   showEdit?: boolean;
 }
 
-export const PostItem = ({
+export function PostItem({
   post,
   currentUser,
   onPostClick,
@@ -27,7 +27,7 @@ export const PostItem = ({
   onUserClick,
   onEdit,
   showEdit = false,
-}: PostItemProps) => {
+}: PostItemProps) {
   const utils = trpc.useUtils();
   const { data: likeStatus } = trpc.post.getLikeStatus.useQuery(
     { postId: post.id, userId: currentUser?.id },

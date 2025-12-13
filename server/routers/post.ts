@@ -213,4 +213,47 @@ export const postRouter = router({
 
       return { success: true };
     }),
+
+  getAllPosts: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(10),
+        cursor: z.number().nullish(),
+        search: z.string().optional(),
+        searchType: z.enum(["content", "user"]).default("content"),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const { limit, cursor, search, searchType } = input;
+      const offset = cursor || 0;
+      const client = getAuthenticatedClient(ctx.headers);
+
+      let query = client
+        .from("posts")
+        .select("*, user:users(*), bookmarks(count)")
+        .order("created_at", { ascending: false });
+
+      if (search) {
+        if (searchType === "content") {
+          query = query.ilike("content", `%${search}%`);
+        } else {
+          // Supabase doesn't support filtering on joined tables directly in the top-level query easily with simple syntax
+          // But we can use !inner to filter by joined table
+          query = client
+            .from("posts")
+            .select("*, user:users!inner(*), bookmarks(count)")
+            .ilike("users.nickname", `%${search}%`)
+            .order("created_at", { ascending: false });
+        }
+      }
+
+      const { data, error } = await query.range(offset, offset + limit - 1);
+
+      if (error) throw new Error(error.message);
+
+      return {
+        items: data || [],
+        nextCursor: (data || []).length === limit ? offset + limit : undefined,
+      };
+    }),
 });

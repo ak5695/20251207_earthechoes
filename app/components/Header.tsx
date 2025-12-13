@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CircleAlert } from "lucide-react";
+import { Bell, CircleAlert, Compass } from "lucide-react";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import type { User } from "@/lib/supabase";
 import { triggerHapticFeedback } from "../utils/haptics";
@@ -15,6 +15,7 @@ interface HeaderProps {
   onOpenProfile: () => void;
   onOpenUserSetup: () => void;
   onOpenInfo: () => void;
+  onOpenExplore: () => void;
 }
 
 export default function Header({
@@ -27,6 +28,7 @@ export default function Header({
   onOpenProfile,
   onOpenUserSetup,
   onOpenInfo,
+  onOpenExplore,
 }: HeaderProps) {
   return (
     <div className="flex justify-between items-start pointer-events-auto">
@@ -64,6 +66,29 @@ export default function Header({
 
       {/* 右侧 - 通知和用户 */}
       <div className="flex items-start gap-3">
+        {/* 信息按钮 */}
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              onOpenInfo();
+            }}
+            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+          >
+            <CircleAlert className="w-5 h-5" />
+          </button>
+          {/* 探索按钮 */}
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              onOpenExplore();
+            }}
+            className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+          >
+            <Compass className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* 通知按钮 */}
         {currentUser && (
           <button
