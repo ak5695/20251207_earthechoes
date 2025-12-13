@@ -268,4 +268,4 @@ export function PostItem({
       </div>
     </div>
   );
-};
+}

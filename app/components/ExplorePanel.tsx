@@ -77,7 +77,7 @@ export default function ExplorePanel({
 
   return (
     <div
-      className={`fixed inset-y-0 right-0 w-full md:w-[480px] bg-slate-900/95 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 flex flex-col ${
+      className={`fixed inset-y-0 right-0 w-full md:w-[480px] bg-slate-900/150 backdrop-blur-xl border-l border-white/10 shadow-2xl z-50 flex flex-col ${
         isClosing ? "animate-slide-out-right" : "animate-slide-in-right"
       }`}
     >
@@ -165,7 +165,7 @@ export default function ExplorePanel({
                 showActions={false} // Explore view usually just shows content, actions can be inside or simplified
               />
             ))}
-            
+
             {/* Loading More Indicator */}
             <div ref={loadMoreRef} className="py-4 flex justify-center">
               {isFetchingNextPage && (
