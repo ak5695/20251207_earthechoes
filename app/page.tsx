@@ -856,6 +856,11 @@ export default function Home() {
           onOpenUserSetup={() => setShowUserSetup(true)}
           onOpenInfo={() => setShowInfoPanel(true)}
           onOpenExplore={() => setShowExplorePanel(true)}
+          language={language}
+          onLanguageChange={(lang) => {
+            setLanguage(lang as Language);
+            localStorage.setItem("app-language", lang);
+          }}
         />
 
         {/* Center Timer */}
@@ -1094,10 +1099,6 @@ export default function Home() {
             setShowUserProfilePanel(true);
           }}
           language={language}
-          onLanguageChange={(lang) => {
-            setLanguage(lang as Language);
-            localStorage.setItem("app-language", lang);
-          }}
           isClosing={isProfileClosing}
         />
       )}

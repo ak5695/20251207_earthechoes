@@ -1,9 +1,11 @@
 "use client";
 
-import { Bell, CircleAlert, Compass } from "lucide-react";
+import { useState } from "react";
+import { Bell, CircleAlert, Compass, Globe } from "lucide-react";
 import { GeneratedAvatar } from "@/components/generated-avatar";
 import type { User } from "@/lib/supabase";
 import { triggerHapticFeedback } from "../utils/haptics";
+import { translations, Language } from "../config/translations";
 
 interface HeaderProps {
   currentUser: User | null;
@@ -16,6 +18,8 @@ interface HeaderProps {
   onOpenUserSetup: () => void;
   onOpenInfo: () => void;
   onOpenExplore: () => void;
+  language: string;
+  onLanguageChange: (lang: any) => void;
 }
 
 export default function Header({
@@ -29,7 +33,11 @@ export default function Header({
   onOpenUserSetup,
   onOpenInfo,
   onOpenExplore,
+  language,
+  onLanguageChange,
 }: HeaderProps) {
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+
   return (
     <div className="flex justify-between items-start pointer-events-auto">
       <div className="flex items-center gap-4">
@@ -136,7 +144,7 @@ export default function Header({
               }}
               className="size-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
             >
-              <CircleAlert className="size-5 md:size-7" />
+              <CircleAlert className="size-7 " />
             </button>
             {/* 探索按钮 */}
             <button
@@ -146,8 +154,55 @@ export default function Header({
               }}
               className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
             >
-              <Compass className="size-5 md:size-7" />
+              <Compass className="size-7 " />
             </button>
+
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  triggerHapticFeedback();
+                  setIsLanguageMenuOpen(!isLanguageMenuOpen);
+                }}
+                className="w-10 h-10 flex items-center justify-center text-white/50 hover:text-white transition-colors btn-icon"
+                title="Switch Language"
+              >
+                <Globe className="size-7" />
+                <span className="text-[9px] font-bold absolute bottom-0 right-0 bg-indigo-500 text-white px-1 rounded-full leading-tight">
+                  {(language || "en").toUpperCase()}
+                </span>
+              </button>
+
+              {isLanguageMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsLanguageMenuOpen(false)}
+                  />
+                  <div className="absolute right-12 top-0 w-32 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden backdrop-blur-xl z-50">
+                    {Object.entries(
+                      translations[language as Language]?.languageNames || {}
+                    ).map(([code, name]) => (
+                      <button
+                        key={code}
+                        onClick={() => {
+                          triggerHapticFeedback();
+                          onLanguageChange(code);
+                          setIsLanguageMenuOpen(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
+                          language === code
+                            ? "text-indigo-400 font-medium"
+                            : "text-white/80"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

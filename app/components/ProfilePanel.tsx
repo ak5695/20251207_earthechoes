@@ -15,7 +15,6 @@ import {
   CircleHelp,
   Bookmark,
   Search,
-  Globe,
 } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -32,7 +31,6 @@ interface ProfilePanelProps {
   onPostClick: (post: Post & { user: User }) => void;
   onUpdateUser: (user: User) => void;
   language: string;
-  onLanguageChange: (lang: any) => void;
   isClosing?: boolean;
   onUserClick?: (user: User) => void;
 }
@@ -61,12 +59,10 @@ export default function ProfilePanel({
   onPostClick,
   onUpdateUser,
   language,
-  onLanguageChange,
   isClosing = false,
   onUserClick,
 }: ProfilePanelProps) {
   const t = translations[language as Language] || translations.en;
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
 
   const listRef = React.useRef<HTMLDivElement>(null);
 
@@ -367,53 +363,6 @@ export default function ProfilePanel({
       >
         {/* Header with Avatar */}
         <div className="relative pt-3 pb-0 px-2 border-b border-white/10">
-          {/* Language Switcher */}
-          <div className="absolute top-4 right-24 z-50">
-            <button
-              onClick={() => {
-                triggerHapticFeedback();
-                setIsLanguageMenuOpen(!isLanguageMenuOpen);
-              }}
-              className="text-white/60 hover:text-white transition-colors btn-icon flex items-center justify-center"
-              title="Switch Language"
-            >
-              <Globe className="w-5 h-5" />
-              <span className="text-[9px] font-bold absolute -bottom-1 -right-1 bg-indigo-500 text-white px-1 rounded-full leading-tight">
-                {language.toUpperCase()}
-              </span>
-            </button>
-
-            {isLanguageMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsLanguageMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-32 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden backdrop-blur-xl z-50">
-                  {Object.entries(
-                    translations[language as Language]?.languageNames || {}
-                  ).map(([code, name]) => (
-                    <button
-                      key={code}
-                      onClick={() => {
-                        triggerHapticFeedback();
-                        onLanguageChange(code);
-                        setIsLanguageMenuOpen(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
-                        language === code
-                          ? "text-indigo-400 font-medium"
-                          : "text-white/80"
-                      }`}
-                    >
-                      {name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
           {/* Logout button */}
           <button
             onClick={() => {
