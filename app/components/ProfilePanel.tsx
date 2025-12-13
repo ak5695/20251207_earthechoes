@@ -15,6 +15,7 @@ import {
   CircleHelp,
   Bookmark,
   Search,
+  Globe,
 } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -22,6 +23,7 @@ import { triggerHapticFeedback } from "../utils/haptics";
 import { trpc } from "../_trpc/client";
 import { PostItem } from "./PostItem";
 import ShareModal from "./ShareModal";
+import { translations, Language } from "../config/translations";
 
 interface ProfilePanelProps {
   currentUser: User;
@@ -30,6 +32,7 @@ interface ProfilePanelProps {
   onPostClick: (post: Post & { user: User }) => void;
   onUpdateUser: (user: User) => void;
   language: string;
+  onLanguageChange: (lang: any) => void;
   isClosing?: boolean;
   onUserClick?: (user: User) => void;
 }
@@ -41,161 +44,6 @@ interface PostWithStats extends Post {
 interface CommentWithUser extends Comment {
   user: User;
 }
-
-const translations: Record<string, Record<string, string>> = {
-  zh: {
-    profile: "我的主页",
-    myPosts: "思考",
-    myBookmarks: "收藏",
-    totalLikes: "赞同",
-    totalComments: "评论",
-    noPosts: "还没有发布内容",
-    noBookmarks: "还没有收藏内容",
-    deleteConfirm: "确定删除这条内容吗？",
-    logout: "退出登录",
-    logoutConfirm: "确定要退出登录吗？",
-    region: "地区",
-    joinedAt: "加入于",
-    vip: "VIP",
-    comments: "条评论",
-    noComments: "暂无评论",
-    followers: "朋友",
-    following: "关心",
-    noFollowers: "暂无联系者",
-    noFollowing: "暂无关心者",
-    noLikes: "暂无赞同",
-    noReceivedComments: "暂无评论",
-    sortBy: "排序",
-    latest: "按时间",
-    mostLikes: "按称赞",
-    mostComments: "按评论",
-    mostBookmarks: "按收藏",
-  },
-  en: {
-    profile: "My Profile",
-    myPosts: "My Moods",
-    myBookmarks: "My Bookmarks",
-    totalLikes: "Likes Received",
-    totalComments: "Comments Received",
-    noPosts: "No moods posted yet",
-    noBookmarks: "No bookmarks yet",
-    deleteConfirm: "Delete this mood?",
-    logout: "Log Out",
-    logoutConfirm: "Are you sure you want to log out?",
-    region: "Region",
-    joinedAt: "Joined",
-    vip: "VIP",
-    comments: "comments",
-    noComments: "No comments yet",
-    followers: "Followers",
-    following: "Following",
-    noFollowers: "No followers yet",
-    noFollowing: "Not following anyone",
-    noLikes: "No likes received yet",
-    noReceivedComments: "No comments received yet",
-    sortBy: "Sort by",
-    latest: "Latest",
-    mostLikes: "Most Likes",
-    mostComments: "Most Comments",
-    mostBookmarks: "Most Bookmarks",
-  },
-  ja: {
-    profile: "マイページ",
-    myPosts: "私の気持ち",
-    myBookmarks: "ブックマーク",
-    totalLikes: "いいね数",
-    totalComments: "コメント数",
-    noPosts: "まだ投稿がありません",
-    noBookmarks: "ブックマークはありません",
-    deleteConfirm: "この投稿を削除しますか？",
-    logout: "ログアウト",
-    logoutConfirm: "ログアウトしますか？",
-    region: "地域",
-    joinedAt: "参加日",
-    vip: "VIP",
-    comments: "件のコメント",
-    noComments: "コメントはありません",
-    followers: "フォロワー",
-    following: "フォロー中",
-    sortBy: "並び替え",
-    latest: "最新",
-    mostLikes: "いいね順",
-    mostComments: "コメント順",
-    mostBookmarks: "ブックマーク順",
-  },
-  ko: {
-    profile: "내 프로필",
-    myPosts: "내 감정",
-    myBookmarks: "내 북마크",
-    totalLikes: "받은 좋아요",
-    totalComments: "받은 댓글",
-    noPosts: "아직 게시물이 없습니다",
-    noBookmarks: "북마크가 없습니다",
-    deleteConfirm: "이 게시물을 삭제하시겠습니까?",
-    logout: "로그아웃",
-    logoutConfirm: "로그아웃하시겠습니까?",
-    region: "지역",
-    joinedAt: "가입일",
-    vip: "VIP",
-    comments: "개의 댓글",
-    noComments: "댓글이 없습니다",
-    followers: "팔로워",
-    following: "팔로잉",
-    sortBy: "정렬",
-    latest: "최신순",
-    mostLikes: "좋아요순",
-    mostComments: "댓글순",
-    mostBookmarks: "북마크순",
-  },
-  fr: {
-    profile: "Mon Profil",
-    myPosts: "Mes Humeurs",
-    myBookmarks: "Mes Favoris",
-    totalLikes: "J'aimes Reçus",
-    totalComments: "Commentaires Reçus",
-    noPosts: "Aucune publication",
-    noBookmarks: "Aucun favori",
-    deleteConfirm: "Supprimer cette publication ?",
-    logout: "Déconnexion",
-    logoutConfirm: "Voulez-vous vous déconnecter ?",
-    region: "Région",
-    joinedAt: "Inscrit le",
-    vip: "VIP",
-    comments: "commentaires",
-    noComments: "Aucun commentaire",
-    followers: "Abonnés",
-    following: "Abonné",
-    sortBy: "Trier par",
-    latest: "Plus récent",
-    mostLikes: "Plus aimés",
-    mostComments: "Plus commentés",
-    mostBookmarks: "Plus favoris",
-  },
-  es: {
-    profile: "Mi Perfil",
-    myPosts: "Mis Estados",
-    myBookmarks: "Mis Favoritos",
-    totalLikes: "Me Gusta Recibidos",
-    totalComments: "Comentarios Recibidos",
-    noPosts: "Sin publicaciones",
-    noBookmarks: "Sin favoritos",
-    deleteConfirm: "¿Eliminar esta publicación?",
-    logout: "Cerrar Sesión",
-    logoutConfirm: "¿Desea cerrar sesión?",
-    region: "Región",
-    joinedAt: "Registrado",
-    vip: "VIP",
-    comments: "comentarios",
-    noComments: "Sin comentarios",
-    followers: "Seguidores",
-    following: "Siguiendo",
-    sortBy: "Ordenar por",
-    latest: "Más recientes",
-    mostLikes: "Más gustados",
-    mostComments: "Más comentados",
-    mostBookmarks: "Más favoritos",
-  },
-};
 
 function generateRandomAvatar(seed: string): string {
   let hash = 0;
@@ -213,10 +61,13 @@ export default function ProfilePanel({
   onPostClick,
   onUpdateUser,
   language,
+  onLanguageChange,
   isClosing = false,
   onUserClick,
 }: ProfilePanelProps) {
-  const t = translations[language] || translations.en;
+  const t = translations[language as Language] || translations.en;
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+
   const listRef = React.useRef<HTMLDivElement>(null);
 
   // tRPC
@@ -516,6 +367,53 @@ export default function ProfilePanel({
       >
         {/* Header with Avatar */}
         <div className="relative pt-3 pb-0 px-2 border-b border-white/10">
+          {/* Language Switcher */}
+          <div className="absolute top-4 right-24 z-50">
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                setIsLanguageMenuOpen(!isLanguageMenuOpen);
+              }}
+              className="text-white/60 hover:text-white transition-colors btn-icon flex items-center justify-center"
+              title="Switch Language"
+            >
+              <Globe className="w-5 h-5" />
+              <span className="text-[9px] font-bold absolute -bottom-1 -right-1 bg-indigo-500 text-white px-1 rounded-full leading-tight">
+                {language.toUpperCase()}
+              </span>
+            </button>
+
+            {isLanguageMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsLanguageMenuOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-32 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden backdrop-blur-xl z-50">
+                  {Object.entries(
+                    translations[language as Language]?.languageNames || {}
+                  ).map(([code, name]) => (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        triggerHapticFeedback();
+                        onLanguageChange(code);
+                        setIsLanguageMenuOpen(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-white/10 transition-colors ${
+                        language === code
+                          ? "text-indigo-400 font-medium"
+                          : "text-white/80"
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Logout button */}
           <button
             onClick={() => {
@@ -835,14 +733,14 @@ export default function ProfilePanel({
           {activeTab === "posts" && (
             <>
               {/* Search Input */}
-              <div className="sticky top-0 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
+              <div className="sticky -top-0.5 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="搜索思考..."
+                    placeholder={t.searchPlaceholder}
                     className="w-full bg-white/10 border border-white/10 rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:bg-white/20 transition-colors"
                   />
                   {searchQuery && (
@@ -902,6 +800,7 @@ export default function ProfilePanel({
                       onEdit={handleEditPost}
                       showEdit={true}
                       onShare={(p) => setSharePost(p)}
+                      language={language}
                     />
                   ))}
 
@@ -946,6 +845,7 @@ export default function ProfilePanel({
                     }}
                     onDelete={handleDeletePost}
                     showDelete={post.user_id === currentUser.id}
+                    language={language}
                     onUserClick={(u) => {
                       handleSaveScroll();
                       onUserClick?.(u);
@@ -1206,7 +1106,7 @@ export default function ProfilePanel({
       {/* Edit Post Modal */}
       {editingPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900/100 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
             <h3 className="text-white text-lg font-medium mb-4">编辑思考</h3>
             <textarea
               value={editContent}
@@ -1224,7 +1124,7 @@ export default function ProfilePanel({
               <button
                 onClick={handleSavePost}
                 disabled={!editContent.trim() || updatePostMutation.isPending}
-                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-white text-black hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {updatePostMutation.isPending ? "保存中..." : "保存"}
               </button>

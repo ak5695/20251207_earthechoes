@@ -53,7 +53,7 @@ const translations: Record<string, Record<string, string>> = {
     hot: "最热",
     new: "最新",
     reply: "回复",
-    like: "赞",
+    like: "点赞",
     liked: "已赞",
     noComments: "还没有评论，快来抢沙发~",
     writeComment: "说点什么...",
@@ -67,8 +67,8 @@ const translations: Record<string, Record<string, string>> = {
     hideReplies: "收起回复",
     vip: "VIP",
     loginToComment: "登录后评论",
-    follow: "关心",
-    following: "关心",
+    follow: "关注",
+    following: "已关注",
     delete: "删除",
     deleteConfirm: "确定删除这条评论吗？",
     contentDeleted: "内容已删除",
@@ -803,27 +803,41 @@ export default function CommentPanel({
 
   // Fetch user's liked comments
   const fetchLikedComments = useCallback(async () => {
-    if (!currentUser || !post) return;
+    if (!currentUser || comments.length === 0) return;
+
+    const commentIds = comments.flatMap((c) => [
+      c.id,
+      ...(c.replies?.map((r) => r.id) || []),
+    ]);
+
+    if (commentIds.length === 0) return;
 
     try {
       const { data } = await supabase
         .from("likes")
         .select("comment_id")
         .eq("user_id", currentUser.id)
-        .not("comment_id", "is", null);
+        .in("comment_id", commentIds);
 
       if (data) {
-        setLikedComments(new Set(data.map((l) => l.comment_id!)));
+        setLikedComments((prev) => {
+          const next = new Set(prev);
+          data.forEach((l) => next.add(l.comment_id!));
+          return next;
+        });
       }
     } catch (err) {
       console.error("Error fetching liked comments:", err);
     }
-  }, [currentUser, post]);
+  }, [currentUser, comments]);
 
   useEffect(() => {
     fetchComments();
+  }, [fetchComments]);
+
+  useEffect(() => {
     fetchLikedComments();
-  }, [fetchComments, fetchLikedComments]);
+  }, [fetchLikedComments]);
 
   useEffect(() => {
     if (highlightCommentId && comments.length > 0) {
@@ -1045,7 +1059,7 @@ export default function CommentPanel({
   if (!post) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-enter cursor-pointer"

@@ -65,6 +65,22 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSceneReady, setIsSceneReady] = useState(false);
 
+  // Language detection
+  useEffect(() => {
+    const savedLang = localStorage.getItem("app-language");
+    if (savedLang) {
+      setLanguage(savedLang as Language);
+    } else {
+      const browserLang = navigator.language.split("-")[0];
+      const supportedLangs: Language[] = ["zh", "en", "ja", "ko", "fr", "es"];
+      if (supportedLangs.includes(browserLang as Language)) {
+        setLanguage(browserLang as Language);
+      } else {
+        setLanguage("en");
+      }
+    }
+  }, []);
+
   // === 发射消息状态 ===
   const [showLaunchMessage, setShowLaunchMessage] = useState(false);
   const [isLaunchMessageClosing, setIsLaunchMessageClosing] = useState(false);
@@ -946,7 +962,10 @@ export default function Home() {
           language={language}
           isClosing={isWelcomeClosing}
           onClose={handleWelcomeClose}
-          onLanguageChange={setLanguage}
+          onLanguageChange={(lang) => {
+            setLanguage(lang);
+            localStorage.setItem("app-language", lang);
+          }}
         />
       )}
 
@@ -1075,6 +1094,10 @@ export default function Home() {
             setShowUserProfilePanel(true);
           }}
           language={language}
+          onLanguageChange={(lang) => {
+            setLanguage(lang as Language);
+            localStorage.setItem("app-language", lang);
+          }}
           isClosing={isProfileClosing}
         />
       )}
@@ -1084,6 +1107,7 @@ export default function Home() {
         <InfoPanel
           isClosing={isInfoClosing}
           initialView={infoPanelInitialView}
+          language={language}
           onClose={() => {
             setIsInfoClosing(true);
             setTimeout(() => {

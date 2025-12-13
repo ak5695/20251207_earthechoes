@@ -9,6 +9,7 @@ import { triggerHapticFeedback } from "../utils/haptics";
 import { trpc } from "../_trpc/client";
 import { PostItem } from "./PostItem";
 import ShareModal from "./ShareModal";
+import { translations, Language } from "../config/translations";
 
 interface UserProfilePanelProps {
   user: User;
@@ -24,123 +25,6 @@ interface PostWithStats extends Post {
   comments_count: number;
   likes_count: number;
 }
-
-const translations: Record<string, Record<string, string>> = {
-  zh: {
-    profile: "用户主页",
-    posts: "思考",
-    totalLikes: "赞同",
-    totalComments: "评论",
-    noPosts: "还没有发布思考",
-    region: "地区",
-    joinedAt: "加入于",
-    vip: "V",
-    follow: "关心",
-    following: "关心中",
-    followers: "朋友",
-    unfollow: "取消关心",
-    sortBy: "排序",
-    latest: "按时间",
-    mostLikes: "按称赞",
-    mostBookmarks: "按收藏",
-    mostComments: "按评论",
-  },
-  en: {
-    profile: "User Profile",
-    posts: "Moods",
-    totalLikes: "Likes",
-    totalComments: "Comments",
-    noPosts: "No moods posted yet",
-    region: "Region",
-    joinedAt: "Joined",
-    vip: "V",
-    follow: "Follow",
-    following: "Following",
-    followers: "Followers",
-    unfollow: "Unfollow",
-    sortBy: "Sort by",
-    latest: "Latest",
-    mostLikes: "Most Likes",
-    mostComments: "Most Comments",
-    mostBookmarks: "Most Bookmarks",
-  },
-  ja: {
-    profile: "ユーザープロフィール",
-    posts: "気持ち",
-    totalLikes: "いいね",
-    totalComments: "コメント",
-    noPosts: "まだ投稿がありません",
-    region: "地域",
-    joinedAt: "参加日",
-    vip: "V",
-    follow: "フォロー",
-    following: "フォロー中",
-    followers: "フォロワー",
-    unfollow: "フォロー解除",
-    sortBy: "並び替え",
-    latest: "最新",
-    mostLikes: "いいね順",
-    mostComments: "コメント順",
-    mostBookmarks: "ブックマーク順",
-  },
-  ko: {
-    profile: "사용자 프로필",
-    posts: "감정",
-    totalLikes: "좋아요",
-    totalComments: "댓글",
-    noPosts: "아직 게시물이 없습니다",
-    region: "지역",
-    joinedAt: "가입일",
-    vip: "V",
-    follow: "팔로우",
-    following: "팔로잉",
-    followers: "팔로워",
-    unfollow: "언팔로우",
-    sortBy: "정렬",
-    latest: "최신순",
-    mostLikes: "좋아요순",
-    mostComments: "댓글순",
-    mostBookmarks: "북마크순",
-  },
-  fr: {
-    profile: "Profil Utilisateur",
-    posts: "Publications",
-    totalLikes: "J'aime",
-    totalComments: "Commentaires",
-    noPosts: "Aucune publication",
-    region: "Région",
-    joinedAt: "Inscrit le",
-    vip: "V",
-    follow: "Suivre",
-    following: "Abonné",
-    followers: "Abonnés",
-    unfollow: "Ne plus suivre",
-    sortBy: "Trier par",
-    latest: "Plus récent",
-    mostLikes: "Plus aimés",
-    mostComments: "Plus commentés",
-    mostBookmarks: "Plus favoris",
-  },
-  es: {
-    profile: "Perfil de Usuario",
-    posts: "Publicaciones",
-    totalLikes: "Me gusta",
-    totalComments: "Comentarios",
-    noPosts: "Sin publicaciones",
-    region: "Región",
-    joinedAt: "Se unió",
-    vip: "V",
-    follow: "Seguir",
-    following: "Siguiendo",
-    followers: "Seguidores",
-    unfollow: "Dejar de seguir",
-    sortBy: "Ordenar por",
-    latest: "Más recientes",
-    mostLikes: "Más gustados",
-    mostComments: "Más comentados",
-    mostBookmarks: "Más favoritos",
-  },
-};
 
 function generateRandomAvatar(seed: string): string {
   let hash = 0;
@@ -160,7 +44,7 @@ export default function UserProfilePanel({
   language,
   isClosing = false,
 }: UserProfilePanelProps) {
-  const t = translations[language] || translations.en;
+  const t = translations[language as Language] || translations.en;
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [sharePost, setSharePost] = useState<Post | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -285,7 +169,7 @@ export default function UserProfilePanel({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/100 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
+        className={`relative z-10 w-full max-w-md bg-gradient-to-b from-gray-900/200 to-black/95 rounded-2xl h-[85vh] flex flex-col overflow-hidden ${
           isClosing ? "animate-panel-exit" : "animate-panel-enter"
         }`}
         style={{ backdropFilter: "blur(20px)", pointerEvents: "auto" }}
@@ -310,7 +194,7 @@ export default function UserProfilePanel({
           <div className="flex items-center gap-4">
             <GeneratedAvatar seed={user.nickname} className="w-16 h-16" />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-white text-xl font-medium">
                   <TypingAnimation
                     duration={80}
@@ -417,14 +301,14 @@ export default function UserProfilePanel({
         {/* Posts List */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-0">
           {/* Search Input */}
-          <div className="sticky top-0 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
+          <div className="sticky -top-0.5 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="搜索思考..."
+                placeholder={t.searchPlaceholder}
                 className="w-full bg-white/10 border border-white/10 rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:bg-white/20 transition-colors"
               />
               {searchQuery && (

@@ -20,9 +20,9 @@ const translations: Record<string, Record<string, string>> = {
   zh: {
     notifications: "通知",
     noNotifications: "暂无通知",
-    likedYourPost: "赞了你的帖子",
+    likedYourPost: "赞了你的思考",
     likedYourComment: "赞了你的评论",
-    commentedOnYourPost: "评论了你的帖子",
+    commentedOnYourPost: "评论了你的思考",
     repliedToYourComment: "回复了你的评论",
     markAllRead: "全部已读",
     justNow: "刚刚",

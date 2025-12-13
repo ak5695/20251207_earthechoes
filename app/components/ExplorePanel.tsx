@@ -12,6 +12,7 @@ import { User, Post } from "@/lib/supabase";
 import { PostItem } from "./PostItem";
 import { triggerHapticFeedback } from "../utils/haptics";
 import ShareModal from "./ShareModal";
+import { translations, Language } from "../config/translations";
 
 interface ExplorePanelProps {
   currentUser: User | null;
@@ -36,6 +37,48 @@ export default function ExplorePanel({
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<"content" | "user">("content");
   const [sharePost, setSharePost] = useState<Post | null>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  const t = translations[language as Language] || translations.en;
+
+  const utils = trpc.useUtils();
+
+  const deletePostMutation = trpc.post.deletePost.useMutation({
+    onSuccess: () => {
+      utils.post.getAllPosts.invalidate();
+    },
+  });
+
+  const updatePostMutation = trpc.post.updatePost.useMutation({
+    onSuccess: () => {
+      utils.post.getAllPosts.invalidate();
+      setEditingPost(null);
+    },
+  });
+
+  const handleDeletePost = async (postId: string) => {
+    if (confirm(t.deleteConfirm)) {
+      triggerHapticFeedback();
+      deletePostMutation.mutate({ postId });
+    }
+  };
+
+  const handleEditPost = (post: Post) => {
+    triggerHapticFeedback();
+    setEditingPost(post);
+    setEditContent(post.content);
+  };
+
+  const handleSavePost = () => {
+    if (editingPost && editContent.trim()) {
+      triggerHapticFeedback();
+      updatePostMutation.mutate({
+        postId: editingPost.id,
+        content: editContent,
+      });
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -105,7 +148,7 @@ export default function ExplorePanel({
       <div className="flex items-center justify-between p-3 border-b border-white/10">
         <h2 className="text-base md:text-xl font-bold text-white tracking-wider flex items-center gap-2">
           <Search className="w-5 h-5 text-indigo-400" />
-          探索
+          {t.explore}
         </h2>
         <div className="flex items-center gap-1">
           <button
@@ -116,7 +159,7 @@ export default function ExplorePanel({
             className={`p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white ${
               isFetching && !isFetchingNextPage ? "animate-spin" : ""
             }`}
-            title="刷新"
+            title={t.refresh}
           >
             <RefreshCw className="w-5 h-5" />
           </button>
@@ -141,7 +184,9 @@ export default function ExplorePanel({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
-              searchType === "content" ? "搜索内容..." : "搜索用户..."
+              searchType === "content"
+                ? t.searchContentPlaceholder
+                : t.searchUserPlaceholder
             }
             className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-white/30 min-w-0"
           />
@@ -160,7 +205,7 @@ export default function ExplorePanel({
               }`}
             >
               <FileText className="w-3 h-3" />
-              内容
+              {t.content}
             </button>
             <button
               onClick={() => {
@@ -174,7 +219,7 @@ export default function ExplorePanel({
               }`}
             >
               <UserIcon className="w-3 h-3" />
-              用户
+              {t.user}
             </button>
           </div>
         </div>
@@ -197,6 +242,11 @@ export default function ExplorePanel({
                 onUserClick={() => onUserClick(post.user)}
                 onUserRequired={onUserRequired}
                 onShare={(p) => setSharePost(p)}
+                showDelete={currentUser?.id === post.user_id}
+                onDelete={handleDeletePost}
+                showEdit={currentUser?.id === post.user_id}
+                onEdit={handleEditPost}
+                language={language}
               />
             ))}
 
@@ -223,6 +273,36 @@ export default function ExplorePanel({
           onClose={() => setSharePost(null)}
           language={language}
         />
+      )}
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-white text-lg font-medium mb-4">编辑思考</h3>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-3 text-white resize-none focus:outline-none focus:border-white/30 mb-4"
+              placeholder="写下你的思考..."
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEditingPost(null)}
+                className="px-4 py-2 text-white/60 hover:text-white transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSavePost}
+                disabled={!editContent.trim() || updatePostMutation.isPending}
+                className="px-4 py-2 bg-white text-black hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {updatePostMutation.isPending ? "保存中..." : "保存"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

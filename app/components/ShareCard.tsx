@@ -11,6 +11,43 @@ interface ShareCardProps {
 }
 
 export default function ShareCard({ post, language }: ShareCardProps) {
+  const t = {
+    zh: {
+      anonymous: "匿名",
+      slogan: "倾听世界内心的声音",
+      appName: "星际回响",
+    },
+    en: {
+      anonymous: "Anonymous",
+      slogan: "Listen to the world's inner voice",
+      appName: "STARSECHOES",
+    },
+    ja: {
+      anonymous: "匿名",
+      slogan: "世界の内なる声に耳を傾ける",
+      appName: "星のこだま",
+    },
+    ko: {
+      anonymous: "익명",
+      slogan: "세상의 내면의 소리를 듣다",
+      appName: "별의 메아리",
+    },
+    fr: {
+      anonymous: "Anonyme",
+      slogan: "Écoutez la voix intérieure du monde",
+      appName: "ÉCHOS DES ÉTOILES",
+    },
+    es: {
+      anonymous: "Anónimo",
+      slogan: "Escucha la voz interior del mundo",
+      appName: "ECOS DE ESTRELLAS",
+    },
+  }[language] || {
+    anonymous: "Anonymous",
+    slogan: "Listen to the world's inner voice",
+    appName: "STARSECHOES",
+  };
+
   // Generate stars
   const stars = useMemo(() => {
     return Array.from({ length: 40 }).map((_, i) => ({
@@ -153,10 +190,16 @@ export default function ShareCard({ post, language }: ShareCardProps) {
           </div>
           <div>
             <h3 className="text-white font-medium text-lg drop-shadow-md">
-              {post.user?.nickname || "Anonymous"}
+              {post.user?.nickname || t.anonymous}
             </h3>
             <p className="text-white/60 text-xs drop-shadow-sm">
-              {new Date(post.created_at).toLocaleDateString()}
+              {new Date(post.created_at).toLocaleDateString(
+                language === "zh"
+                  ? "zh-CN"
+                  : language === "ja"
+                  ? "ja-JP"
+                  : "en-US"
+              )}
             </p>
           </div>
         </div>
@@ -179,11 +222,11 @@ export default function ShareCard({ post, language }: ShareCardProps) {
         {/* Footer */}
         <div className="relative z-10 flex items-end justify-between pt-6 border-t border-white/10">
           <div>
-            <h4 className="text-white font-bold text-lg tracking-wider drop-shadow-md">
-              STARSECHOES
+            <h4 className="text-white font-bold text-lg tracking-wider drop-shadow-md uppercase">
+              {t.appName}
             </h4>
             <p className="text-white/40 text-xs mt-1 drop-shadow-sm">
-              Listen to the world's inner voice
+              {t.slogan}
             </p>
           </div>
           <div className="bg-white p-1.5 rounded-lg shadow-lg">

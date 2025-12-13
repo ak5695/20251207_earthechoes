@@ -256,4 +256,61 @@ export const postRouter = router({
         nextCursor: (data || []).length === limit ? offset + limit : undefined,
       };
     }),
+
+  translatePost: publicProcedure
+    .input(z.object({ text: z.string(), targetLang: z.string() }))
+    .mutation(async ({ input }) => {
+      const { text, targetLang } = input;
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+
+      if (!apiKey) {
+        throw new Error("DeepSeek API key not configured");
+      }
+
+      const langMap: Record<string, string> = {
+        zh: "Simplified Chinese",
+        en: "English",
+        ja: "Japanese",
+        ko: "Korean",
+        fr: "French",
+        es: "Spanish",
+      };
+
+      const targetLanguageName = langMap[targetLang] || targetLang;
+
+      const response = await fetch(
+        "https://api.deepseek.com/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a professional translator. Translate the user's text to the target language. If the text is already in the target language, return the original text. Only return the translated text, no explanations. Keep the tone and style of the original text.",
+              },
+              {
+                role: "user",
+                content: `Target Language: ${targetLanguageName}\nText: ${text}`,
+              },
+            ],
+            temperature: 0.3,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error("DeepSeek API error:", error);
+        throw new Error("Translation failed");
+      }
+
+      const data = await response.json();
+      return { translatedText: data.choices[0].message.content.trim() };
+    }),
 });

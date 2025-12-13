@@ -17,6 +17,7 @@ export default function TrpcProvider({
       links: [
         httpBatchLink({
           url: "/api/trpc",
+          maxURLLength: 2000,
           transformer: superjson,
           headers: async () => {
             const {

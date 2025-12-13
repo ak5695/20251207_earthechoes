@@ -104,6 +104,7 @@ export default function WelcomeModal({
             {/* 固定高度的标题区域 */}
             <div className="h-8 mb-4 min-w-0">
               <TypingAnimationLite
+                key={`title-${language}`}
                 duration={80}
                 delay={200}
                 showCursor={false}
@@ -116,6 +117,7 @@ export default function WelcomeModal({
             <div className="h-32 sm:h-28 flex flex-col justify-start min-w-0">
               <div className="text-white/50 text-sm leading-relaxed mb-2 min-h-[3rem] sm:min-h-[2.5rem]">
                 <TypingAnimationLite
+                  key={`text1-${language}`}
                   duration={50}
                   delay={600}
                   showCursor={false}
@@ -126,6 +128,7 @@ export default function WelcomeModal({
               </div>
               <div className="text-white/50 text-sm leading-relaxed min-h-[3rem] sm:min-h-[2.5rem]">
                 <TypingAnimationLite
+                  key={`text2-${language}`}
                   duration={50}
                   delay={1200}
                   showCursor={false}

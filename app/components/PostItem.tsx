@@ -9,6 +9,8 @@ import {
   Bookmark,
   Edit2,
   Share2,
+  Languages,
+  Loader2,
 } from "lucide-react";
 import { trpc } from "../_trpc/client";
 import { triggerHapticFeedback } from "../utils/haptics";
@@ -25,6 +27,7 @@ interface PostItemProps {
   showEdit?: boolean;
   onUserRequired?: () => void;
   onShare?: (post: Post) => void;
+  language?: string;
 }
 
 export function PostItem({
@@ -38,8 +41,35 @@ export function PostItem({
   showEdit = false,
   onUserRequired,
   onShare,
+  language = "zh",
 }: PostItemProps) {
   const utils = trpc.useUtils();
+  const [translatedText, setTranslatedText] = useState<string | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
+
+  const translateMutation = trpc.post.translatePost.useMutation({
+    onSuccess: (data) => {
+      setTranslatedText(data.translatedText);
+      setShowTranslation(true);
+    },
+  });
+
+  const handleTranslate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+
+    if (translatedText) {
+      setShowTranslation(true);
+      return;
+    }
+
+    triggerHapticFeedback();
+    translateMutation.mutate({ text: post.content, targetLang: language });
+  };
+
   const { data: likeStatus } = trpc.post.getLikeStatus.useQuery(
     { postId: post.id, userId: currentUser?.id },
     { enabled: !!currentUser }
@@ -221,7 +251,7 @@ export function PostItem({
             {new Date(post.created_at).toLocaleDateString()}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {showEdit && (
             <button
               onClick={(e) => {
@@ -246,6 +276,18 @@ export function PostItem({
       </div>
 
       <p className="text-white/90 text-sm mb-3">{post.content}</p>
+
+      {showTranslation && translatedText && (
+        <div className="mt-2 mb-3 p-3 bg-white/5 rounded-lg border border-white/10 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 mb-1 text-xs text-white/40">
+            <Languages className="w-3 h-3" />
+            <span>Translated to {language}</span>
+          </div>
+          <p className="text-white/80 text-sm leading-relaxed">
+            {translatedText}
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex items-center gap-4 text-xs">
@@ -281,6 +323,21 @@ export function PostItem({
         >
           <MessageCircle className="w-3.5 h-3.5" />
           {post.comments_count || 0}
+        </button>
+        <button
+          className={`flex items-center gap-1 transition-colors btn-interactive ${
+            showTranslation
+              ? "text-cyan-400"
+              : "text-white/40 hover:text-cyan-400"
+          }`}
+          onClick={handleTranslate}
+          disabled={translateMutation.isPending}
+        >
+          {translateMutation.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Languages className="w-3.5 h-3.5" />
+          )}
         </button>
         {onShare && (
           <button
