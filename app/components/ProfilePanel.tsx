@@ -220,7 +220,7 @@ export default function ProfilePanel({
 
   // tRPC
   const utils = trpc.useUtils();
-  const { data: profileData, isLoading: loading } =
+  const { data: profileData, isPending: loading } =
     trpc.user.getProfile.useQuery({
       userId: currentUser.id,
     });
@@ -248,7 +248,7 @@ export default function ProfilePanel({
   // Fetch posts with sorting
   const {
     data: postsData,
-    isLoading: loadingPosts,
+    isPending: loadingPosts,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -277,7 +277,7 @@ export default function ProfilePanel({
   const followingCount = followStats?.followingCount || 0;
 
   // Bookmarks
-  const { data: bookmarksData, isLoading: loadingBookmarks } =
+  const { data: bookmarksData, isPending: loadingBookmarks } =
     trpc.user.getBookmarks.useQuery(
       { userId: currentUser.id },
       { enabled: activeTab === "bookmarks" }
@@ -285,7 +285,7 @@ export default function ProfilePanel({
   const bookmarks = bookmarksData || [];
 
   // Followers
-  const { data: followersData, isLoading: loadingFollowers } =
+  const { data: followersData, isPending: loadingFollowers } =
     trpc.user.getFollowers.useQuery(
       { userId: currentUser.id },
       { enabled: activeTab === "followers" }
@@ -293,7 +293,7 @@ export default function ProfilePanel({
   const followers = followersData || [];
 
   // Following
-  const { data: followingData, isLoading: loadingFollowing } =
+  const { data: followingData, isPending: loadingFollowing } =
     trpc.user.getFollowing.useQuery(
       { userId: currentUser.id },
       { enabled: activeTab === "following" }
@@ -301,7 +301,7 @@ export default function ProfilePanel({
   const following = followingData || [];
 
   // Received Likes
-  const { data: likesData, isLoading: loadingLikes } =
+  const { data: likesData, isPending: loadingLikes } =
     trpc.user.getReceivedLikes.useQuery(
       { userId: currentUser.id },
       { enabled: activeTab === "likes" }
@@ -309,7 +309,7 @@ export default function ProfilePanel({
   const receivedLikes = likesData || [];
 
   // Received Comments
-  const { data: commentsData, isLoading: loadingComments } =
+  const { data: commentsData, isPending: loadingComments } =
     trpc.user.getReceivedComments.useQuery(
       { userId: currentUser.id },
       { enabled: activeTab === "comments" }
@@ -1219,10 +1219,10 @@ export default function ProfilePanel({
               </button>
               <button
                 onClick={handleSavePost}
-                disabled={!editContent.trim() || updatePostMutation.isLoading}
+                disabled={!editContent.trim() || updatePostMutation.isPending}
                 className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {updatePostMutation.isLoading ? "保存中..." : "保存"}
+                {updatePostMutation.isPending ? "保存中..." : "保存"}
               </button>
             </div>
           </div>

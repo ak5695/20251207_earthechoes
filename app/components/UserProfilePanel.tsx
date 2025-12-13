@@ -168,7 +168,7 @@ export default function UserProfilePanel({
   >("latest");
 
   // Fetch profile data (posts + stats)
-  const { data: profileData, isLoading: loading } =
+  const { data: profileData, isPending: loading } =
     trpc.user.getProfile.useQuery({
       userId: user.id,
     });
@@ -176,7 +176,7 @@ export default function UserProfilePanel({
   // Fetch posts with sorting
   const {
     data: postsData,
-    isLoading: loadingPosts,
+    isPending: loadingPosts,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,

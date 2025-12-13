@@ -391,7 +391,7 @@ export default function Home() {
   const {
     data: currentPost,
     refetch: refetchPost,
-    isLoading: isPostLoading,
+    isPending: isPostLoading,
   } = useQuery({
     queryKey: ["post", currentParticleText],
     queryFn: async () => {
