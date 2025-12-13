@@ -198,6 +198,22 @@ export const postRouter = router({
       return { isBookmarked };
     }),
 
+  deletePost: publicProcedure
+    .input(z.object({ postId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { postId } = input;
+      const authenticatedClient = getAuthenticatedClient(ctx.headers);
+
+      const { error } = await authenticatedClient
+        .from("posts")
+        .delete()
+        .eq("id", postId);
+
+      if (error) throw new Error(error.message);
+
+      return { success: true };
+    }),
+
   updatePost: publicProcedure
     .input(z.object({ postId: z.string(), content: z.string() }))
     .mutation(async ({ input, ctx }) => {
