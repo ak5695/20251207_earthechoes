@@ -11,11 +11,14 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "build:mobile": "cross-env CAPACITOR_BUILD=true NEXT_PUBLIC_API_URL=https://20251207-earthechoes.vercel.app/api/trpc next build",
+    "build:mobile": "node scripts/build-mobile.js",
     "cap:sync": "npx cap sync",
     "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@dicebear/bottts-neutral": "^9.2.4",
     "@dicebear/core": "^9.2.4",
     "@dicebear/initials": "^9.2.4",
@@ -34,6 +37,7 @@
     "@types/three": "^0.181.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cross-env": "^10.1.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.0",
     "html-to-image": "^1.11.13",
