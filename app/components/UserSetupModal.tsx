@@ -36,6 +36,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "密码",
     emailPlaceholder: "请输入邮箱",
     passwordPlaceholder: "请设置密码（至少6位）",
+    confirmPassword: "确认密码",
+    confirmPasswordPlaceholder: "请再次输入密码",
     loginPasswordPlaceholder: "请输入密码",
     welcomeBack: "欢迎回来",
     loginSubtitle: "使用邮箱登录",
@@ -65,6 +67,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "Password",
     emailPlaceholder: "Enter email",
     passwordPlaceholder: "Set password (min 6 chars)",
+    confirmPassword: "Confirm Password",
+    confirmPasswordPlaceholder: "Re-enter password",
     loginPasswordPlaceholder: "Enter password",
     welcomeBack: "Welcome Back",
     loginSubtitle: "Login with email",
@@ -94,6 +98,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "パスワード",
     emailPlaceholder: "メールを入力",
     passwordPlaceholder: "パスワードを設定（6文字以上）",
+    confirmPassword: "パスワード確認",
+    confirmPasswordPlaceholder: "パスワードを再入力",
     loginPasswordPlaceholder: "パスワードを入力",
     welcomeBack: "おかえりなさい",
     loginSubtitle: "メールでログイン",
@@ -123,6 +129,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "비밀번호",
     emailPlaceholder: "이메일 입력",
     passwordPlaceholder: "비밀번호 설정 (6자 이상)",
+    confirmPassword: "비밀번호 확인",
+    confirmPasswordPlaceholder: "비밀번호 다시 입력",
     loginPasswordPlaceholder: "비밀번호 입력",
     welcomeBack: "다시 오신 것을 환영합니다",
     loginSubtitle: "이메일로 로그인",
@@ -148,6 +156,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "Mot de passe",
     emailPlaceholder: "Entrez email",
     passwordPlaceholder: "Définir mot de passe (min 6)",
+    confirmPassword: "Confirmer mot de passe",
+    confirmPasswordPlaceholder: "Ressaisir mot de passe",
     loginPasswordPlaceholder: "Entrez mot de passe",
     welcomeBack: "Bienvenue",
     loginSubtitle: "Connexion par email",
@@ -168,6 +178,8 @@ const translations: Record<string, Record<string, string>> = {
     password: "Contraseña",
     emailPlaceholder: "Introduce email",
     passwordPlaceholder: "Establecer contraseña (mín 6)",
+    confirmPassword: "Confirmar contraseña",
+    confirmPasswordPlaceholder: "Reingresar contraseña",
     loginPasswordPlaceholder: "Introduce contraseña",
     welcomeBack: "Bienvenido",
     loginSubtitle: "Iniciar con email",
@@ -247,12 +259,21 @@ export default function UserSetupModal({
   const [region, setRegion] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [userLanguage, setUserLanguage] = useState(language);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isClosing, setIsClosing] = useState(false);
+
+  // Initialize with random nickname
+  React.useEffect(() => {
+    const names =
+      randomNicknames[userLanguage as keyof typeof randomNicknames] ||
+      randomNicknames.en;
+    setNickname(names[Math.floor(Math.random() * names.length)]);
+  }, []);
 
   // 带动画的关闭处理
   const handleClose = useCallback(() => {
@@ -346,6 +367,10 @@ export default function UserSetupModal({
       setError("密码至少需要6个字符");
       return;
     }
+    if (password !== confirmPassword) {
+      setError("两次输入的密码不一致");
+      return;
+    }
     if (!agreedToPolicy) {
       setError(t.pleaseAgree);
       return;
@@ -375,8 +400,8 @@ export default function UserSetupModal({
         .insert({
           id: signUpData.user.id,
           nickname: nickname.trim(),
-          gender: gender,
-          region: region.trim() || null,
+          gender: "unknown",
+          region: null,
           language: userLanguage,
           email: email.trim(),
         })
@@ -582,6 +607,18 @@ export default function UserSetupModal({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <label className="text-sm text-gray-400 text-right">
+                  {t.confirmPassword}
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t.confirmPasswordPlaceholder}
+                  className="col-span-3 bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm text-gray-400 text-right">
                   {t.nickname}
                 </label>
                 <div className="col-span-3 flex gap-2">
@@ -604,64 +641,6 @@ export default function UserSetupModal({
                     <Shuffle className="w-4 h-4" />
                   </Button>
                 </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-sm text-gray-400 text-right">
-                  {t.gender}
-                </label>
-                <div className="col-span-3 flex gap-2">
-                  <Button
-                    variant={gender === "male" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setGender("male")}
-                    className={`flex-1 gap-2 ${
-                      gender === "male"
-                        ? "bg-indigo-500 hover:bg-indigo-600"
-                        : "border-gray-600 hover:bg-gray-700"
-                    }`}
-                  >
-                    <Mars className="w-4 h-4" />
-                    {t.male}
-                  </Button>
-                  <Button
-                    variant={gender === "female" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setGender("female")}
-                    className={`flex-1 gap-2 ${
-                      gender === "female"
-                        ? "bg-pink-500 hover:bg-pink-600"
-                        : "border-gray-600 hover:bg-gray-700"
-                    }`}
-                  >
-                    <Venus className="w-4 h-4" />
-                    {t.female}
-                  </Button>
-                  <Button
-                    variant={gender === "unknown" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setGender("unknown")}
-                    className={`flex-1 gap-2 ${
-                      gender === "unknown"
-                        ? "bg-gray-600 hover:bg-gray-500"
-                        : "border-gray-600 hover:bg-gray-700"
-                    }`}
-                  >
-                    <CircleHelp className="w-4 h-4" />
-                    {t.unknown}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label className="text-sm text-gray-400 text-right">
-                  {t.region}
-                </label>
-                <Input
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                  placeholder={t.regionPlaceholder}
-                  maxLength={50}
-                  className="col-span-3 bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-500"
-                />
               </div>
 
               {/* Policy Agreement */}

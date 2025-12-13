@@ -168,7 +168,7 @@ export default function Header({
                 title="Switch Language"
               >
                 <Globe className="size-7" />
-                <span className="text-[9px] font-bold absolute bottom-0 right-0 bg-indigo-500 text-white px-1 rounded-full leading-tight">
+                <span className="text-[9px] font-bold absolute bottom-0 right-0 text-white/80 px-1 rounded-full leading-tight">
                   {(language || "en").toUpperCase()}
                 </span>
               </button>
