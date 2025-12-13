@@ -19,7 +19,7 @@ interface ExplorePanelProps {
   onPostClick: (post: Post & { user: User | null }) => void;
   onUserClick: (user: User) => void;
   onUserRequired?: () => void;
-  language: "zh" | "en" | "ja";
+  language: string;
   isClosing?: boolean;
 }
 
