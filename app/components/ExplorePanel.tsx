@@ -106,11 +106,10 @@ export default function ExplorePanel({
         </button>
       </div>
 
-      {/* Search & Filter */}
-      <div className="p-6 pb-2 space-y-4">
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+      {/* Search & Filter - Compact Design */}
+      <div className="px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl p-1.5 focus-within:bg-white/10 focus-within:border-white/20 transition-all">
+          <Search className="w-4 h-4 text-white/40 ml-2 shrink-0" />
           <input
             type="text"
             value={searchQuery}
@@ -118,45 +117,45 @@ export default function ExplorePanel({
             placeholder={
               searchType === "content" ? "搜索内容..." : "搜索用户..."
             }
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 transition-colors"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-white/30 min-w-0"
           />
-        </div>
 
-        {/* Filter Tabs */}
-        <div className="flex p-1 bg-white/5 rounded-lg">
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              setSearchType("content");
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-              searchType === "content"
-                ? "bg-indigo-500/20 text-indigo-300 shadow-sm"
-                : "text-white/40 hover:text-white/60"
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            按内容
-          </button>
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              setSearchType("user");
-            }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
-              searchType === "user"
-                ? "bg-indigo-500/20 text-indigo-300 shadow-sm"
-                : "text-white/40 hover:text-white/60"
-            }`}
-          >
-            <UserIcon className="w-4 h-4" />
-            按用户
-          </button>
+          {/* Compact Toggle */}
+          <div className="flex bg-black/20 rounded-lg p-1 shrink-0 gap-1">
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                setSearchType("content");
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                searchType === "content"
+                  ? "bg-indigo-500 text-white shadow-sm"
+                  : "text-white/40 hover:text-white/60 hover:bg-white/5"
+              }`}
+            >
+              <FileText className="w-3 h-3" />
+              内容
+            </button>
+            <button
+              onClick={() => {
+                triggerHapticFeedback();
+                setSearchType("user");
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all flex items-center gap-1.5 ${
+                searchType === "user"
+                  ? "bg-indigo-500 text-white shadow-sm"
+                  : "text-white/40 hover:text-white/60 hover:bg-white/5"
+              }`}
+            >
+              <UserIcon className="w-3 h-3" />
+              用户
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content List */}
-      <div className="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 custom-scrollbar">
         {isPending ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
