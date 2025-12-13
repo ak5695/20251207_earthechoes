@@ -190,7 +190,6 @@ export default function ExplorePanel({
                 onUserClick={() => onUserClick(post.user)}
                 onUserRequired={onUserRequired}
                 onShare={(p) => setSharePost(p)}
-                showActions={false} // Explore view usually just shows content, actions can be inside or simplified
               />
             ))}
 
