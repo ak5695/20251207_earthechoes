@@ -220,27 +220,17 @@ const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
     useEffect(() => {
       const loadPosts = async () => {
         try {
-          // 尝试使用 RPC 获取随机数据
-          let { data, error } = await supabase.rpc("get_random_posts", {
-            p_language: language,
-            p_limit: NEBULA_PARTICLE_COUNT,
-          });
+          // 按点赞数和时间排序获取数据
+          const result = await supabase
+            .from("posts")
+            .select("*")
+            .eq("language", language)
+            .order("likes_count", { ascending: false })
+            .order("created_at", { ascending: false })
+            .limit(NEBULA_PARTICLE_COUNT);
 
-          // 如果 RPC 失败（例如函数未创建），降级到按时间排序的普通查询
-          if (error) {
-            console.warn(
-              "get_random_posts RPC failed, falling back to standard query:",
-              error
-            );
-            const result = await supabase
-              .from("posts")
-              .select("*")
-              .eq("language", language)
-              .order("created_at", { ascending: false })
-              .limit(NEBULA_PARTICLE_COUNT);
-            data = result.data;
-            error = result.error;
-          }
+          let data = result.data;
+          let error = result.error;
 
           if (error) {
             console.error("加载心情数据失败:", error);

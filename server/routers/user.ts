@@ -63,10 +63,11 @@ export const userRouter = router({
           .default("latest"),
         limit: z.number().min(1).max(100).default(10),
         cursor: z.number().nullish(),
+        search: z.string().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
-      const { userId, sortBy, limit, cursor } = input;
+      const { userId, sortBy, limit, cursor, search } = input;
       const offset = cursor || 0;
       const client = getAuthenticatedClient(ctx.headers);
 
@@ -82,11 +83,16 @@ export const userRouter = router({
         // BUT this is "getUserPosts" sorted by "bookmarks".
         // Let's stick to the previous logic but apply slice for pagination.
 
-        const { data, error } = await client
+        let query = client
           .from("posts")
           .select("*, bookmarks(count)")
-          .eq("user_id", userId)
-          .limit(1000); // Fetch more to sort correctly
+          .eq("user_id", userId);
+
+        if (search) {
+          query = query.ilike("content", `%${search}%`);
+        }
+
+        const { data, error } = await query.limit(1000); // Fetch more to sort correctly
 
         if (error) throw new Error(error.message);
 
@@ -111,6 +117,10 @@ export const userRouter = router({
         .from("posts")
         .select("*, bookmarks(count)")
         .eq("user_id", userId);
+
+      if (search) {
+        query = query.ilike("content", `%${search}%`);
+      }
 
       if (sortBy === "latest") {
         query = query.order("created_at", { ascending: false });
@@ -147,6 +157,7 @@ export const userRouter = router({
 
         let totalLikes = 0;
         let totalComments = 0;
+        const totalPosts = allPostsStats?.length || 0;
 
         allPostsStats?.forEach((post) => {
           totalLikes += post.likes_count || 0;
@@ -171,6 +182,7 @@ export const userRouter = router({
           totalLikes,
           totalComments,
           totalBookmarks: totalBookmarks || 0,
+          totalPosts,
         };
       } catch (error) {
         console.error("Error in getProfile:", error);
@@ -179,6 +191,7 @@ export const userRouter = router({
           totalLikes: 0,
           totalComments: 0,
           totalBookmarks: 0,
+          totalPosts: 0,
         };
       }
     }),

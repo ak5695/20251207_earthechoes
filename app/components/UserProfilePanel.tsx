@@ -281,7 +281,7 @@ export default function UserProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-3 pb-3 px-2 border-b border-white/10">
+        <div className="relative pt-3 pb-0 px-2 border-b border-white/10">
           {/* Close button */}
           <button
             onClick={() => {

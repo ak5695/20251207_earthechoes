@@ -197,4 +197,20 @@ export const postRouter = router({
 
       return { isBookmarked };
     }),
+
+  updatePost: publicProcedure
+    .input(z.object({ postId: z.string(), content: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { postId, content } = input;
+      const authenticatedClient = getAuthenticatedClient(ctx.headers);
+
+      const { error } = await authenticatedClient
+        .from("posts")
+        .update({ content })
+        .eq("id", postId);
+
+      if (error) throw new Error(error.message);
+
+      return { success: true };
+    }),
 });

@@ -577,7 +577,7 @@ export default function CommentPanel({
   });
 
   const liked = likeStatus?.isLiked || false;
-  const postLikesCount = likeStatus?.likesCount || post?.likes_count || 0;
+  const postLikesCount = likeStatus?.likesCount ?? post?.likes_count ?? 0;
   const [likeLoading, setLikeLoading] = useState(false);
   const isBookmarked = bookmarkStatus?.isBookmarked || false;
   const [bookmarkLoading, setBookmarkLoading] = useState(false);

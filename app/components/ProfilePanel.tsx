@@ -14,6 +14,7 @@ import {
   Venus,
   CircleHelp,
   Bookmark,
+  Search,
 } from "lucide-react";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -64,10 +65,10 @@ const translations: Record<string, Record<string, string>> = {
     noLikes: "暂无赞同",
     noReceivedComments: "暂无评论",
     sortBy: "排序",
-    latest: "最新",
-    mostLikes: "点赞最多",
-    mostComments: "评论最多",
-    mostBookmarks: "收藏最多",
+    latest: "按时间",
+    mostLikes: "按称赞",
+    mostComments: "按评论",
+    mostBookmarks: "按收藏",
   },
   en: {
     profile: "My Profile",
@@ -233,6 +234,17 @@ export default function ProfilePanel({
     "latest" | "likes" | "comments" | "bookmarks"
   >("latest");
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch posts with sorting
   const {
     data: postsData,
@@ -245,6 +257,7 @@ export default function ProfilePanel({
       userId: currentUser.id,
       sortBy: sortOrder,
       limit: 10,
+      search: debouncedSearchQuery,
     },
     {
       enabled: activeTab === "posts",
@@ -430,9 +443,35 @@ export default function ProfilePanel({
     try {
       await supabase.from("posts").delete().eq("id", postId);
       utils.user.getProfile.invalidate({ userId: currentUser.id });
+      utils.user.getUserPosts.invalidate();
     } catch (err) {
       console.error("Error deleting post:", err);
     }
+  };
+
+  // Edit Post State
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  const updatePostMutation = trpc.post.updatePost.useMutation({
+    onSuccess: () => {
+      utils.user.getUserPosts.invalidate();
+      setEditingPost(null);
+      setEditContent("");
+    },
+  });
+
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post);
+    setEditContent(post.content);
+  };
+
+  const handleSavePost = () => {
+    if (!editingPost || !editContent.trim()) return;
+    updatePostMutation.mutate({
+      postId: editingPost.id,
+      content: editContent,
+    });
   };
 
   const handleLogout = () => {
@@ -474,7 +513,19 @@ export default function ProfilePanel({
         }}
       >
         {/* Header with Avatar */}
-        <div className="relative pt-3 pb-3 px-2 border-b border-white/10">
+        <div className="relative pt-3 pb-0 px-2 border-b border-white/10">
+          {/* Logout button */}
+          <button
+            onClick={() => {
+              triggerHapticFeedback();
+              handleLogout();
+            }}
+            className="absolute top-4 right-14 text-red-500 font-bold hover:text-red-400 transition-colors btn-icon"
+            title={t.logout}
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+
           {/* Close button */}
           <button
             onClick={() => {
@@ -654,8 +705,8 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-white text-lg font-light">
-                {posts.length}
+              <div className="text-white text-base md:text-lg font-light">
+                {profileData?.totalPosts || 0}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
                 {t.myPosts}
@@ -672,7 +723,7 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-yellow-400 text-lg font-light">
+              <div className="text-yellow-400 text-base md:text-lg font-light">
                 {totalBookmarks}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
@@ -691,7 +742,7 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-red-400 text-lg font-light">
+              <div className="text-red-400 text-base md:text-lg font-light">
                 {totalLikes}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
@@ -717,7 +768,7 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-blue-400 text-lg font-light">
+              <div className="text-blue-400 text-base md:text-lg font-light">
                 {totalComments}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
@@ -742,7 +793,7 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-white text-lg font-light">
+              <div className="text-white text-base md:text-lg font-light">
                 {followersCount}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
@@ -761,7 +812,7 @@ export default function ProfilePanel({
                   : "opacity-50 hover:opacity-80"
               }`}
             >
-              <div className="text-white text-lg font-light">
+              <div className="text-white text-base md:text-lg font-light">
                 {followingCount}
               </div>
               <div className="text-white text-xs whitespace-nowrap">
@@ -777,30 +828,52 @@ export default function ProfilePanel({
         {/* Content List */}
         <div
           ref={listRef}
-          className="flex-1 overflow-y-auto px-4 pb-4 min-h-[300px]"
+          className="flex-1 overflow-y-auto px-4 pt-0 pb-2 min-h-[300px]"
         >
           {activeTab === "posts" && (
             <>
-              {/* Sorting Controls */}
-              <div className="sticky top-0 z-30 backdrop-blur-md py-2 -mx-4 px-4 mb-4 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
-                {(["latest", "likes", "comments", "bookmarks"] as const).map(
-                  (sort) => (
+              {/* Search Input */}
+              <div className="sticky top-0 z-30 bg-black/50 backdrop-blur-md pt-2 pb-2 -mx-4 px-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="搜索思考..."
+                    className="w-full bg-white/10 border border-white/10 rounded-full py-2 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:bg-white/20 transition-colors"
+                  />
+                  {searchQuery && (
                     <button
-                      key={sort}
-                      onClick={() => setSortOrder(sort)}
-                      className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
-                        sortOrder === sort
-                          ? "bg-white text-black font-medium"
-                          : "bg-white/10 text-white/60 hover:bg-white/20"
-                      }`}
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
                     >
-                      {sort === "latest" && t.latest}
-                      {sort === "likes" && t.mostLikes}
-                      {sort === "comments" && t.mostComments}
-                      {sort === "bookmarks" && t.mostBookmarks}
+                      <X className="w-3 h-3" />
                     </button>
-                  )
-                )}
+                  )}
+                </div>
+
+                {/* Sorting Controls */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar mt-3 pb-1">
+                  {(["latest", "likes", "bookmarks", "comments"] as const).map(
+                    (sort) => (
+                      <button
+                        key={sort}
+                        onClick={() => setSortOrder(sort)}
+                        className={`px-3 py-1 rounded-full text-xs whitespace-nowrap transition-colors ${
+                          sortOrder === sort
+                            ? "bg-white text-black font-medium"
+                            : "bg-white/10 text-white/60 hover:bg-white/20"
+                        }`}
+                      >
+                        {sort === "latest" && t.latest}
+                        {sort === "likes" && t.mostLikes}
+                        {sort === "bookmarks" && t.mostBookmarks}
+                        {sort === "comments" && t.mostComments}
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
 
               {loading || loadingPosts ? (
@@ -824,6 +897,8 @@ export default function ProfilePanel({
                       }}
                       onDelete={handleDeletePost}
                       showDelete={true}
+                      onEdit={handleEditPost}
+                      showEdit={true}
                     />
                   ))}
 
@@ -1123,21 +1198,36 @@ export default function ProfilePanel({
               </div>
             ))}
         </div>
-
-        {/* Footer - Logout */}
-        <div className="border-t border-white/10 p-4">
-          <button
-            onClick={() => {
-              triggerHapticFeedback();
-              handleLogout();
-            }}
-            className="w-full flex items-center justify-center gap-2 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors btn-glow btn-ripple"
-          >
-            <LogOut className="w-4 h-4" />
-            {t.logout}
-          </button>
-        </div>
       </div>
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900/100 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-white text-lg font-medium mb-4">编辑思考</h3>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-3 text-white resize-none focus:outline-none focus:border-white/30 mb-4"
+              placeholder="写下你的思考..."
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEditingPost(null)}
+                className="px-4 py-2 text-white/60 hover:text-white transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSavePost}
+                disabled={!editContent.trim() || updatePostMutation.isLoading}
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {updatePostMutation.isLoading ? "保存中..." : "保存"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

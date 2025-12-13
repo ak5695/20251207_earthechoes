@@ -106,7 +106,7 @@ const InputArea = forwardRef<HTMLDivElement, InputAreaProps>(
             onKeyDown={handleKeyDown}
             disabled={contributionState !== "idle"}
             placeholder={placeholder}
-            className={`w-full h-full bg-transparent border-none text-base md:text-lg text-white placeholder:text-white/60 placeholder:text-center focus:outline-none text-center md:text-left transition-opacity duration-300 ${
+            className={`w-full h-full bg-transparent border-none text-base md:text-lg text-white  placeholder:text-center placeholder:text-slate-500 focus:outline-none text-center md:text-left transition-opacity duration-300 ${
               contributionState !== "idle" ? "opacity-0" : "opacity-100"
             }`}
             style={{

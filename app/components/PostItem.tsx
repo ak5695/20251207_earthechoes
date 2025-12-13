@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Post, User } from "@/lib/supabase";
-import { Heart, MessageCircle, Trash2, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Trash2, Bookmark, Edit2 } from "lucide-react";
 import { trpc } from "../_trpc/client";
 import { triggerHapticFeedback } from "../utils/haptics";
 import { GeneratedAvatar } from "@/components/generated-avatar";
@@ -14,6 +14,8 @@ interface PostItemProps {
   onDelete?: (postId: string) => void;
   showDelete?: boolean;
   onUserClick?: (user: User) => void;
+  onEdit?: (post: Post) => void;
+  showEdit?: boolean;
 }
 
 export const PostItem = ({
@@ -23,6 +25,8 @@ export const PostItem = ({
   onDelete,
   showDelete = false,
   onUserClick,
+  onEdit,
+  showEdit = false,
 }: PostItemProps) => {
   const utils = trpc.useUtils();
   const { data: likeStatus } = trpc.post.getLikeStatus.useQuery(
@@ -200,14 +204,28 @@ export const PostItem = ({
             {new Date(post.created_at).toLocaleDateString()}
           </span>
         </div>
-        {showDelete && (
-          <button
-            onClick={handleDelete}
-            className="text-white/30 hover:text-red-400 transition-colors btn-icon"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {showEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                triggerHapticFeedback();
+                onEdit?.(post);
+              }}
+              className="text-white/30 hover:text-blue-400 transition-colors btn-icon"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+          {showDelete && (
+            <button
+              onClick={handleDelete}
+              className="text-white/30 hover:text-red-400 transition-colors btn-icon"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <p className="text-white/90 text-sm mb-3">{post.content}</p>
