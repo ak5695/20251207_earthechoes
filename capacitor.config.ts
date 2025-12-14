@@ -1,12 +1,12 @@
-import { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.earthechoes.app',
-  appName: 'EarthEchoes',
-  webDir: 'out',
+  appId: "com.earthechoes.app",
+  appName: "EarthEchoes",
+  webDir: "out",
   server: {
-    androidScheme: 'https'
-  }
+    androidScheme: "https",
+  },
 };
 
 export default config;

@@ -20,6 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -38,6 +39,8 @@ export const metadata: Metadata = {
   },
 };
 
+import Script from "next/script";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -46,6 +49,33 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`antialiased font-sans`}>
+        <Script
+          id="unregister-sw"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                 // Optional: Only unregister if not on standard web https
+              }
+              
+              // Force unregister service workers if we are in Capacitor (or just always to be safe for now)
+              // We can detect Capacitor by user agent or just check if we are not in a standard browser environment
+              // But simpler: If we want to kill the SW, just kill it.
+              
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    // If we are in the mobile app (Capacitor), unregister everything
+                    if (window.location.protocol === 'https:' && window.location.hostname === 'localhost') {
+                        registration.unregister();
+                        console.log('Service Worker unregistered');
+                    }
+                  }
+                });
+              }
+            `,
+          }}
+        />
         <TrpcProvider>
           <ProgressBarProvider>
             {children}
