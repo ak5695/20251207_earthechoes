@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   // 仅处理 /api 路径的请求
   if (request.nextUrl.pathname.startsWith("/api")) {
     const origin = request.headers.get("origin");
-    
+
     // 定义允许的来源列表
     // https://localhost 是 Android 模拟器/真机通常使用的来源
     // capacitor://localhost 是 iOS 通常使用的来源
@@ -14,11 +14,11 @@ export function middleware(request: NextRequest) {
       "http://localhost",
       "capacitor://localhost",
       "http://localhost:3000",
-      "https://earthechoes.dufran.cn"
+      "https://earthechoes.dufran.cn",
     ];
 
     const response = NextResponse.next();
-    
+
     // 处理 CORS 头
     if (origin) {
       // 如果来源在白名单中，或者为了开发方便允许所有（生产环境建议严格限制）
@@ -27,8 +27,14 @@ export function middleware(request: NextRequest) {
     }
 
     response.headers.set("Access-Control-Allow-Credentials", "true");
-    response.headers.set("Access-Control-Allow-Methods", "GET, DELETE, PATCH, POST, PUT, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization");
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, DELETE, PATCH, POST, PUT, OPTIONS"
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+    );
 
     // 处理预检请求 (OPTIONS)
     if (request.method === "OPTIONS") {
@@ -40,7 +46,7 @@ export function middleware(request: NextRequest) {
 
     return response;
   }
-  
+
   return NextResponse.next();
 }
 
